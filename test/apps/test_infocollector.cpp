@@ -14,8 +14,8 @@ struct MyInfo {
 
     static const std::string get_classname() { return "dunedaq::opmonlib::MyInfo"; }
 
-    int32_t number;
-    std::string something;
+    int32_t anumber;
+    int64_t bnumber;
 };
 
 // This will be code-generated -------
@@ -26,22 +26,22 @@ struct MyInfoPlusPlus {
 
     static const std::string get_classname() { return "dunedaq::opmonlib::MyInfoPlusPlus"; }
 
-    int32_t anotherNumber;
-    std::string somethingElse;
+    int32_t another_number;
+    float another_bnumber;
 };
 
 
 inline void
 to_json(nlohmann::json& j, const MyInfo& obj) {
-    j["number"] = obj.number;
-    j["something"] = obj.something;
+    j["anumber"] = obj.anumber;
+    j["bnumber"] = obj.bnumber;
 }
 
 
 inline void
 to_json(nlohmann::json& j, const MyInfoPlusPlus& obj) {
-    j["anotherNumber"] = obj.anotherNumber;
-    j["somethingElse"] = obj.somethingElse;
+    j["another_number"] = obj.another_number;
+    j["another_bnumber"] = obj.another_bnumber;
 }
 }
 // Code generation stops here ------
@@ -89,11 +89,11 @@ class DummyModule : public appfwk::NamedObject {
     /* This is*/
     void get_info( opmonlib::InfoCollector& ic, int level = 0) {
 
-        dunedaq::mynamespace::MyInfo my = { 15, "hello world"};
+        dunedaq::mynamespace::MyInfo my = { 15, 27, 333};
         ic.add(my);
 
         if ( level > 0 ) {
-            dunedaq::mynamespace::MyInfoPlusPlus mypp = { 25, "hello world again"};
+            dunedaq::mynamespace::MyInfoPlusPlus mypp = { 25, 13.5};
             ic.add(mypp);
         }
 
