@@ -21,11 +21,11 @@ std::string JsonConverter::checkDataType(std::string line)
     return lineOriginal;
 }
 
-std::vector<std::string> JsonConverter::jsonToInfluxFunction(bool ignoreTags, std::vector<std::string> tagSetVector, std::string timeVariableName, std::string fileName)
+
+
+std::vector<std::string> JsonConverter::jsonToInfluxFunction(bool ignoreTags, std::vector<std::string> tagSetVector, std::string timeVariableName, json jsonStream)
 {
-    std::ifstream filestream(fileName);
-    json jsonStream;
-    filestream >> jsonStream;
+    
 
     //flatten json, convert to string the json, then breaks the string into an array
     std::string jsonFlattenedString = jsonStream.flatten().dump();

@@ -29,35 +29,24 @@ void InsertToDB(std::vector<std::string> insertsVector)
 
 void InfoManager::publish_info( int level ) {
 
-  // Use m_mod_mgr and m_time_interval_sec here?
-  // add? 
+    // Use m_mod_mgr and m_time_interval_sec here?
+    // add? 
 
-  //nlohmann::json j = gather_info(level);
+    //nlohmann::json j = gather_info(level);
   
-  //std::cout <<  j.dump(2) << std::endl;  // print json?
+    //std::cout <<  j.dump(2) << std::endl;  // print json?
 
-    //#include <filesystem>
     //#include <influxdb.hpp>
-    //#include <nlohmann/json.hpp>
 
     //Json to TSDB variables and class instanciation
-    //std::string path = "C:/Users/yadonon/Projects/jsontoinfluxdb/converterC/converterC/jsonFiles";
-    std::string path = "yourpath";
     std::vector<std::string> insertsVector;
     std::vector<std::string> tagSetVector;
     tagSetVector.push_back(".class_name=");
     std::string timeVariableName = ".time=";
     JsonConverter jsonConverter;
 
-    //Goes through json files at indicated location
-    for (const auto& entry : std::filesystem::directory_iterator(path))
-    {
-        if (entry.path().extension() == ".json")
-        {
-            jsonConverter.setInsertsVector(false, tagSetVector, timeVariableName, entry.path().string());
-            InsertToDB(jsonConverter.getInsertsVector());
-        }
-    }
+    jsonConverter.setInsertsVector(false, tagSetVector, timeVariableName, gather_info(level));
+    InsertToDB(jsonConverter.getInsertsVector());
 
 }
 
