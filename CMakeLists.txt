@@ -10,12 +10,10 @@ find_package(ers REQUIRED)
 find_package(logging REQUIRED)
 find_package(nlohmann_json REQUIRED)
 
-set(OPMONLIB_DEPENDENCIES ${CETLIB} ${CETLIB_EXCEPT} ers::ers logging::logging nlohmann_json::nlohmann_json)
-
 ##############################################################################
 # Main library
 
-daq_add_library(*.cpp LINK_LIBRARIES ${OPMONLIB_DEPENDENCIES})
+daq_add_library(*.cpp LINK_LIBRARIES ${CETLIB} ${CETLIB_EXCEPT} ers::ers logging::logging nlohmann_json::nlohmann_json)
 
 ##############################################################################
 # Plugins

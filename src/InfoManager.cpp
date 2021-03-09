@@ -5,9 +5,9 @@
 #include "opmonlib/InfoCollector.hpp"
 #include "opmonlib/OpmonService.hpp"
 
-using namespace dunedaq::opmonlib;
 using namespace std;
 
+namespace dunedaq::opmonlib {
 
 InfoManager::InfoManager(std::string service) 
 {
@@ -78,3 +78,4 @@ void InfoManager::stop()
   m_thread.join();
 }
 
+} // namespace dunedaq::opmonlib
