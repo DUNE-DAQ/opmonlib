@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <influxdb.hpp>
 
 #include "opmonlib/InfoManager.hpp"
 #include "opmonlib/InfoCollector.hpp"
@@ -36,7 +37,7 @@ void InfoManager::publish_info( int level ) {
   
     //std::cout <<  j.dump(2) << std::endl;  // print json?
 
-    //#include <influxdb.hpp>
+    //
 
     //Json to TSDB variables and class instanciation
     std::vector<std::string> insertsVector;
