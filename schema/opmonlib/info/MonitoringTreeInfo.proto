@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+
+package dunedaq.opmonlib.opmon;
+
+message MonitoringTreeInfo {
+
+  // Information on the tree structure
+  uint32 n_registered_nodes = 1;
+  uint32 n_publishing_nodes = 2;
+  uint32 n_invalid_links = 3;
+
+  // Activity information 
+  uint32 n_published_measurements = 11;
+  uint32 n_errors = 12;
+  uint64 clockwall_elapsed_time_us = 13;
+  uint64 cpu_elapsed_time_us =14;
+  
+}
+

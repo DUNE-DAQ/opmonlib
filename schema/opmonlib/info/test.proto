@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+
+package dunedaq.opmon;
+
+message TestInfo {
+
+  string string_example = 1;
+  double float_example = 2;
+  int64  int_example = 3;
+  bool bool_example = 4;
+}
+
+message ComplexInfo {
+
+  float another_float = 1;
+  TestInfo sub_message = 3;
+  repeated int32 r_field = 4;
+}
