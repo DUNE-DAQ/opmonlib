@@ -14,6 +14,7 @@
 #include <opmonlib/opmon/monitoring_tree.pb.h>
 
 #include "confmodel/OpMonConf.hpp"
+#include <logging/Logging.hpp> // NOTE: if ISSUES ARE DECLARED BEFORE include logging/Logging.hpp, TLOG_DEBUG<<issue wont work.
 
 #include <google/protobuf/message.h>
 
