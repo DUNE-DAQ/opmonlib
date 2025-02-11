@@ -17,7 +17,7 @@
 #include <google/protobuf/message.h>
 #include "opmonlib/opmon_entry.pb.h"
 #include "ers/ers.hpp"
-#include <logging/Logging.hpp> // NOTE: if ISSUES ARE DECLARED BEFORE include logging/Logging.hpp, TLOG_DEBUG<<issue wont work.
+#include "logging/Logging.hpp" // NOTE: if ISSUES ARE DECLARED BEFORE include logging/Logging.hpp, TLOG_DEBUG<<issue wont work.
 
 #include <google/protobuf/util/time_util.h>
 

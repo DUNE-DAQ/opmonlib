@@ -6,7 +6,7 @@
  * received with this code.
  */
 
-#include <logging/Logging.hpp>
+#include "logging/Logging.hpp"
 #include "opmonlib/JSonOpMonFacility.hpp"
 
 #include <google/protobuf/util/json_util.h>
