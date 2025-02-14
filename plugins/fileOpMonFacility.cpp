@@ -11,7 +11,7 @@
 #include <iostream>
 #include <thread>
 
-#include <logging/Logging.hpp>
+#include "logging/Logging.hpp"
 
 
 namespace dunedaq::opmonlib {

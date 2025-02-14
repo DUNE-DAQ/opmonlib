@@ -14,6 +14,7 @@
 #include <cetlib/BasicPluginFactory.h>
 #include <cetlib/compiler_macros.h>
 #include "opmonlib/opmon_entry.pb.h"
+#include "logging/Logging.hpp" // NOTE: if ISSUES ARE DECLARED BEFORE include logging/Logging.hpp, TLOG_DEBUG<<issue wont work.
 
 #include <iostream>
 #include <memory>

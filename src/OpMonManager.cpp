@@ -9,7 +9,7 @@
 #include <chrono>
 
 #include <opmonlib/OpMonManager.hpp>
-#include <logging/Logging.hpp>
+#include "logging/Logging.hpp"
 
 using namespace dunedaq::opmonlib;
 
