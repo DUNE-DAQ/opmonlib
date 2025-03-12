@@ -1,0 +1,26 @@
+#!/bin/env python3
+
+from opmonlib.info_file_collator import collate_info_files
+
+import rich.traceback
+from rich.console import Console
+
+# Add -h as default help option
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
+
+console = Console()
+
+import click
+
+@click.command(context_settings=CONTEXT_SETTINGS)
+@click.option('-o', '--output-file', type=click.File('w'), default='opmon_collated.json')
+@click.argument('json_files', type=click.File('r'), nargs=-1)
+
+def cli(output_file, json_files):
+    collate_info_files(output_file, json_files, console)
+
+if __name__ == '__main__':
+    try:
+        cli(show_default=True, standalone_mode=True)
+    except Exception as e:
+        console.print_exception()
