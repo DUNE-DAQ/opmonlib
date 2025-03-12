@@ -1,24 +1,8 @@
 #!/usr/bin/env python3
 
 import json
-import os
-from re import A, I
-import rich.traceback
-from rich.console import Console
-from os.path import exists, join
 
-# Add -h as default help option
-CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
-
-console = Console()
-
-import click
-
-@click.command(context_settings=CONTEXT_SETTINGS)
-@click.option('-o', '--output-file', type=click.File('w'), default='opmon_collated.json')
-@click.argument('json_files', type=click.File('r'), nargs=-1)
-
-def cli(output_file, json_files):
+def collate_info_files(output_file, json_files, console):
     
     console.log(f"Reading specified JSON files and outputting collated value traces to {output_file.name}")
 
@@ -87,8 +71,3 @@ def cli(output_file, json_files):
     console.log(f"Operation complete")
 
 
-if __name__ == '__main__':
-    try:
-        cli(show_default=True, standalone_mode=True)
-    except Exception as e:
-        console.print_exception()
