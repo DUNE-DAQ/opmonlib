@@ -1,4 +1,5 @@
 import logging
+from dataclasses import dataclass
 import sys
 from pathlib import Path
 
@@ -7,6 +8,14 @@ from google.protobuf.message import Message as Msg
 from google.protobuf.timestamp_pb2 import Timestamp
 
 from opmonlib.opmon_entry_pb2 import OpMonEntry, OpMonId, OpMonValue
+
+@dataclass
+class OpMonConf:
+    opmon_type: str
+    bootstrap: str
+    topic: str
+    level: int
+    interval_s: int
 
 
 def parse_opmon_conf(
@@ -61,13 +70,13 @@ def parse_opmon_conf(
         log.error("Missing 'interval_s' in the opmon configuration, exiting.")
         sys.exit(1)
 
-    return {
-        "type": opmon_type,
-        "bootstrap": bootstrap,
-        "topic": topic,
-        "level": level,
-        "interval_s": interval_s,
-    }
+    return OpMonConf(
+        opmon_type,
+        bootstrap,
+        topic,
+        level,
+        interval_s
+    )
 
 
 def map_entry(value: int | float | bool | str, field_type: int) -> OpMonValue:
