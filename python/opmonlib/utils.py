@@ -62,9 +62,9 @@ def parse_opmon_conf(
     level = conf.get("level")
     if not level:
         log.warning(
-            "Missing 'log_level' in the opmon configuration, using default 'INFO'."
+            "Missing 'log_level' in the opmon configuration, using default 'DEBUG'."
         )
-        level = logging.INFO
+        level = logging.DEBUG
 
     interval_s = conf.get("interval_s")
     if not interval_s:
@@ -82,8 +82,22 @@ def parse_opmon_conf(
         path
     )
 
+def to_string(id: OpMonId) -> str:
+    ret = id.get("session")
+    if not ret:
+        err_msg = "Missing session in OpMonId."
+        raise ValueError(err_msg) from None
 
-def map_entry(value: int | float | bool | str, field_type: int) -> OpMonValue:
+    application = id.get("application")
+    if application:
+        ret += "." + application
+
+    substructures = id.get("substructure")
+    for substructure in substructures:
+        ret += "." + substructure
+    return ret
+
+def to_map(value: int | float | bool | str, field_type: int) -> OpMonValue:
     """Map the data entry to the correct protobuf format."""
     formatted_opmonvalue = OpMonValue()
     match field_type:
@@ -107,7 +121,7 @@ def map_entry(value: int | float | bool | str, field_type: int) -> OpMonValue:
     return formatted_opmonvalue
 
 
-def map_message(message: Msg, top_block: str = "") -> dict:
+def make_data(message: Msg, top_block: str = "") -> dict:
     """Map each message entry to the correct data type."""
     message_dict = {}
     for name, descriptor in message.DESCRIPTOR.fields_by_name.items():
@@ -115,10 +129,11 @@ def map_message(message: Msg, top_block: str = "") -> dict:
             continue  # Repeated values not supported in influxdb
         if descriptor.cpp_type == FieldDescriptor.CPPTYPE_MESSAGE:
             top_block += name + "."
-            message_dict = message_dict | map_message(getattr(message, name), top_block)
+            message_dict = message_dict | make_data(getattr(message, name), top_block)
         else:
-            message_dict[top_block + name] = map_entry(
-                getattr(message, name), descriptor.cpp_type
+            message_dict[top_block + name] = to_map(
+                value=getattr(message, name),
+                field_type=descriptor.cpp_type
             )
     return message_dict
 
@@ -138,8 +153,14 @@ def validate_custom_origin(
                 raise TypeError(msg) from None
     return custom_origin
 
+def make_origin(session: str, app: str) -> OpMonId:
+    opmonid = OpMonId(
+        session = session,
+        application = app
+    )
+    return opmonid
 
-def pack_to_opmonentry(
+def to_entry(
     session: str,
     application: str,
     message: Msg,
@@ -148,13 +169,10 @@ def pack_to_opmonentry(
     t: Timestamp,
 ) -> OpMonEntry:
     """Pack all the data that needs to be published to an OpMonEntry."""
-    opmon_id = OpMonId(
-        session=session, application=application, substructure=substructure
-    )
     return OpMonEntry(
         time=t,
-        origin=opmon_id,
+        origin=make_origin(session, application),
         custom_origin=validate_custom_origin(custom_origin),
         measurement=message.DESCRIPTOR.full_name,
-        data=map_message(message),
+        data=make_data(message),
     )
