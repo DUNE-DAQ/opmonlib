@@ -174,3 +174,35 @@ def to_entry(
         measurement=message.DESCRIPTOR.full_name,
         data=make_data(message),
     )
+
+
+def extract_opmon_file_path(file_path: str, origin: OpMonId | None) -> str:
+    """Verify the file path can be opened."""
+    hook = "://"
+    hook_position = file_path.find(hook)
+    fname = None
+    if hook_position == -1:
+        fname = file_path
+    else:
+        fname = file_path[hook_position + len(hook) :]
+
+    if origin:
+        slash_pos = fname.rfind("/")
+        if slash_pos == -1:
+            dot_pos = fname.find(".")
+        else:
+            dot_pos = fname.find(".", slash_pos)
+        origin = to_string(origin)
+        if dot_pos == -1:
+            fname += "." + origin + ".json"
+        else:
+            fname = fname[:dot_pos] + "." + origin + fname[dot_pos:]
+
+    try:
+        with open(fname, "a"):
+            pass
+    except OSError:
+        error_msg = "Can not open file %s", fname
+        raise OSError(error_msg) from None
+
+    return fname

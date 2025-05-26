@@ -5,12 +5,13 @@ from datetime import datetime, tzinfo
 
 import pytz
 from google.protobuf.message import Message as Msg
+from google.protobuf.timestamp_pb2 import Timestamp
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.theme import Theme
 
 from opmonlib.opmon_entry_pb2 import OpMonEntry
-from opmonlib.utils import parse_opmon_conf
+from opmonlib.utils import extract_opmon_file_path, parse_opmon_conf, to_entry
 
 CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
 CONSOLE_THEMES = Theme({"info": "dim cyan", "warning": "magenta", "danger": "bold red"})
@@ -89,7 +90,7 @@ class OpMonPublisher:
         self.level = opmon_conf.level
         self.interval_s = opmon_conf.interval_s
         self.default_topic = "monitoring." + opmon_conf.topic
-        self.path = opmon_conf.path
+        self.path = extract_opmon_file_path(opmon_conf.path)
 
         self.opmon_producer = logging.getLogger("monitoring." + self.default_topic)
         if self.type == "stdout":
@@ -116,6 +117,7 @@ class OpMonPublisher:
         else:
             self.log.error("Unsupported OpMon type.")
             sys.exit(1)
+        self.log = logging.getLogger("OpMonPublisher.%s", self.default_topic)
         self.log.addHandler(handler)
         return
 
@@ -143,10 +145,33 @@ class OpMonPublisher:
         key += "/" + str(opmon_entry.measurement)
         return key
 
-    def publish(self, message: Msg, metric: OpMonEntry) -> None:
-        """Send an OpMonEntry to Kafka."""
+    def publish(
+        self,
+        session: str,
+        application: str,
+        message: Msg,
+        custom_origin: dict[str, str] | None = None,
+        substructure: list[str] | None = None,
+        level: int | None = None,
+    ) -> None:
+        """Publish the message to either a file or the terminal."""
+        if not isinstance(message, Msg):
+            self.log.error("Passed message needs to be of type google.protobuf.message")
+            return
+        if not level:
+            return
+        metric = to_entry(
+            session=session,
+            application=application,
+            message=message,
+            custom_origin=custom_origin,
+            substructure=substructure,
+            t=Timestamp().GetCurrentTime(),
+        )
         target_topic = self.extract_topic(message)
         target_key = self.extract_key(metric)
-
         self.producer.send(target_topic, value=metric, key=target_key)
+        # How should this be included?
+        # What do the standard message formats look likje?
+        # When from google.protobuf.json_format import MessageToJson
         return
