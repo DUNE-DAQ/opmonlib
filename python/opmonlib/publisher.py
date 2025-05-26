@@ -84,13 +84,14 @@ class OpMonPublisher:
         self.log.setLevel(log_level)
 
         opmon_conf = parse_opmon_conf(self.log, conf, uri)
-        self.type = opmon_conf["type"]
-        self.bootstrap = opmon_conf["bootstrap"]
-        self.level = opmon_conf["level"]
-        self.interval_s = opmon_conf["interval_s"]
-        self.default_topic = "monitoring." + opmon_conf["topic"]
+        self.type = opmon_conf.opmon_type
+        self.bootstrap = opmon_conf.bootstrap
+        self.level = opmon_conf.level
+        self.interval_s = opmon_conf.interval_s
+        self.default_topic = "monitoring." + opmon_conf.topic
+        self.path = opmon_conf.path
 
-        self.opmon_producer = logging.getLogger("monitoring.%s", self.default_topic)
+        self.opmon_producer = logging.getLogger("monitoring." + self.default_topic)
         if self.type == "stdout":
             if rich_handler:
                 try:

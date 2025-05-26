@@ -15,8 +15,8 @@ class OpMonConf:
     bootstrap: str
     topic: str
     level: int
-    interval_s: int
-
+    interval_s: float
+    path: str
 
 def parse_opmon_conf(
     log: logging.Logger, conf: dict[str:str], uri: dict[str:str]
@@ -37,12 +37,13 @@ def parse_opmon_conf(
         opmon_type = "stdout"
 
     path = uri.get("path")
+    log.warning(path)
     if not path:
         log.error("Missing 'path' in the opmon configuration, exiting.")
         sys.exit(1)
 
     if opmon_type == "stream" and "monkafka" not in path:
-        msg = "OpMon stream configuration must publish to kafka, exiting."
+        msg = "OpMon 'stream' configuration must publish to kafka, exiting."
         raise ValueError(msg) from None
     if opmon_type != "stream" and "monkafka" in path:
         msg = "To use kafka, the type must be set to stream."
@@ -56,7 +57,7 @@ def parse_opmon_conf(
     elif "monkafka" in path:
         bootstrap, topic = path.split("/", 1)
     if not topic:
-        topic = "OpMon"
+        topic = "opmon_stream"
 
     level = conf.get("level")
     if not level:
@@ -67,15 +68,18 @@ def parse_opmon_conf(
 
     interval_s = conf.get("interval_s")
     if not interval_s:
-        log.error("Missing 'interval_s' in the opmon configuration, exiting.")
-        sys.exit(1)
+        log.warning(
+            "Missing 'interval_s' in the opmon configuration, using default 10s."
+        )
+        interval_s = 10.0
 
     return OpMonConf(
         opmon_type,
         bootstrap,
         topic,
         level,
-        interval_s
+        interval_s,
+        path
     )
 
 
