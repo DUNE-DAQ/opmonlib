@@ -1,6 +1,6 @@
 import logging
-from dataclasses import dataclass
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 from google.protobuf.descriptor import FieldDescriptor
@@ -9,14 +9,18 @@ from google.protobuf.timestamp_pb2 import Timestamp
 
 from opmonlib.opmon_entry_pb2 import OpMonEntry, OpMonId, OpMonValue
 
+
 @dataclass
 class OpMonConf:
+    """Define all OpMon configuration parameters."""
+
     opmon_type: str
     bootstrap: str
     topic: str
     level: int
     interval_s: float
     path: str
+
 
 def parse_opmon_conf(
     log: logging.Logger, conf: dict[str:str], uri: dict[str:str]
@@ -73,29 +77,25 @@ def parse_opmon_conf(
         )
         interval_s = 10.0
 
-    return OpMonConf(
-        opmon_type,
-        bootstrap,
-        topic,
-        level,
-        interval_s,
-        path
-    )
+    return OpMonConf(opmon_type, bootstrap, topic, level, interval_s, path)
 
-def to_string(id: OpMonId) -> str:
-    ret = id.get("session")
+
+def to_string(opmon_id: OpMonId) -> str:
+    """Map the OpMonId to a string."""
+    ret = opmon_id.get("session")
     if not ret:
         err_msg = "Missing session in OpMonId."
         raise ValueError(err_msg) from None
 
-    application = id.get("application")
+    application = opmon_id.get("application")
     if application:
         ret += "." + application
 
-    substructures = id.get("substructure")
+    substructures = opmon_id.get("substructure")
     for substructure in substructures:
         ret += "." + substructure
     return ret
+
 
 def to_map(value: int | float | bool | str, field_type: int) -> OpMonValue:
     """Map the data entry to the correct protobuf format."""
@@ -132,8 +132,7 @@ def make_data(message: Msg, top_block: str = "") -> dict:
             message_dict = message_dict | make_data(getattr(message, name), top_block)
         else:
             message_dict[top_block + name] = to_map(
-                value=getattr(message, name),
-                field_type=descriptor.cpp_type
+                value=getattr(message, name), field_type=descriptor.cpp_type
             )
     return message_dict
 
@@ -153,12 +152,11 @@ def validate_custom_origin(
                 raise TypeError(msg) from None
     return custom_origin
 
+
 def make_origin(session: str, app: str) -> OpMonId:
-    opmonid = OpMonId(
-        session = session,
-        application = app
-    )
-    return opmonid
+    """Construct and return the OpMonId."""
+    return OpMonId(session=session, application=app)
+
 
 def to_entry(
     session: str,
