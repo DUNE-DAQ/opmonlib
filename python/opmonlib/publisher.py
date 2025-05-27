@@ -11,8 +11,9 @@ from rich.console import Console
 from rich.logging import RichHandler
 from rich.theme import Theme
 
+from opmonlib.conf import OpMonConf
 from opmonlib.opmon_entry_pb2 import OpMonEntry
-from opmonlib.utils import extract_opmon_file_path, parse_opmon_conf, to_entry
+from opmonlib.utils import extract_opmon_file_path, to_entry
 
 CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
 CONSOLE_THEMES = Theme({"info": "dim cyan", "warning": "magenta", "danger": "bold red"})
@@ -94,25 +95,22 @@ class OpMonPublisher:
     """Publish operational monitoring metrics to file or stream."""
 
     def __init__(
-        self,
-        conf: dict[str:str],
-        uri: dict[str:str],
-        log_level: int = logging.INFO,
-        rich_handler: bool = True,
+        self, conf: OpMonConf, log_level: int = logging.INFO, rich_handler: bool = True
     ) -> None:
         """Construct the object to publish OpMon metrics to stdout."""
         self.log = logging.getLogger("OpMonPublisher")
         self.log.setLevel(log_level)
+        self.conf = conf
 
-        opmon_conf = parse_opmon_conf(self.log, conf, uri)
-        self.type = opmon_conf.opmon_type
-        self.level = opmon_conf.level
-        self.interval_s = opmon_conf.interval_s
-        self.default_topic = "monitoring." + opmon_conf.topic
-        self.path = extract_opmon_file_path(opmon_conf.path)
+        if self.conf.opmon_type == "stream":
+            self.log.error("Type must not be stream to use file or stdout handling.")
+            sys.exit(1)
+
+        self.default_topic = "monitoring." + self.conf.topic
+        self.conf.path = extract_opmon_file_path(self.conf.path)
 
         self.opmon_producer = logging.getLogger("monitoring." + self.default_topic)
-        if self.type == "stdout":
+        if self.conf.type == "stdout":
             if rich_handler:
                 try:
                     width = os.get_terminal_size()[0]
@@ -136,6 +134,7 @@ class OpMonPublisher:
         else:
             self.log.error("Unsupported OpMon type.")
             sys.exit(1)
+
         self.log = logging.getLogger(self.default_topic)
         self.log.addHandler(handler)
         return

@@ -5,8 +5,8 @@ from pathlib import Path
 from google.protobuf.descriptor import FieldDescriptor
 from google.protobuf.message import Message as Msg
 from google.protobuf.timestamp_pb2 import Timestamp
-from opmonconf.conf import OpMonConf
 
+from opmonlib.conf import OpMonConf
 from opmonlib.opmon_entry_pb2 import OpMonEntry, OpMonId, OpMonValue
 
 
