@@ -91,6 +91,11 @@ def publish_message(
     return
 
 
+missing_producer_err_str = (
+    "Improperly initialized OpMonProducer used, nothing will be published."
+)
+
+
 class OpMonPublisher:
     """Publish operational monitoring metrics to file or stream."""
 
@@ -107,10 +112,11 @@ class OpMonPublisher:
             sys.exit(1)
 
         self.default_topic = "monitoring." + self.conf.topic
-        self.conf.path = extract_opmon_file_path(self.conf.path)
+        if self.conf.opmon_type == "file":
+            self.conf.path = extract_opmon_file_path(self.conf.path)
 
         self.opmon_producer = logging.getLogger("monitoring." + self.default_topic)
-        if self.conf.type == "stdout":
+        if self.conf.opmon_type == "stdout":
             if rich_handler:
                 try:
                     width = os.get_terminal_size()[0]
@@ -128,8 +134,8 @@ class OpMonPublisher:
             else:
                 handler = logging.StreamHandler(sys.stdout)
                 handler.setFormatter(LoggingFormatter(fmt=full_log_format))
-        elif self.type == "file":
-            handler = logging.FileHandler(self.path)
+        elif self.conf.opmon_type == "file":
+            handler = logging.FileHandler(self.conf.path)
             handler.setFormatter(LoggingFormatter(fmt=full_log_format))
         else:
             self.log.error("Unsupported OpMon type.")
@@ -142,18 +148,14 @@ class OpMonPublisher:
     def extract_topic(self, message: Msg) -> str:
         """Extract the target topic from the message."""
         if not self.producer:
-            self.log.warning(
-                "Improperly initialized OpMonProducer used, nothing will be published."
-            )
+            self.log.warning(missing_producer_err_str)
             return None
         return self.default_topic
 
     def extract_key(self, opmon_entry: OpMonEntry) -> str:
         """Extract  the key from the OpMonEntry."""
         if not self.producer:
-            self.log.warning(
-                "Improperly initialized OpMonProducer used, nothing will be published."
-            )
+            self.log.warning(missing_producer_err_str)
             return None
         key = str(opmon_entry.origin.session)
         if opmon_entry.origin.application != "":

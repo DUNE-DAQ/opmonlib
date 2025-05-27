@@ -22,17 +22,25 @@ def parse_opmon_conf(
         sys.exit(1)
 
     opmon_type = uri.get("type")
-    if not opmon_type:
+    if opmon_type:
+        log.debug("Found OpMon type: %s", opmon_type)
+    else:
         log.warning(
-            "Missing 'type' in the opmon configuration, using default value 'stdout'."
+            "Missing 'type' in the opmon configuration, [yellow]using default value "
+            "'stdout'[/yellow]."
         )
         opmon_type = "stdout"
 
     path = uri.get("path")
-    log.warning(path)
-    if not path:
+    if path:
+        log.debug("Found OpMon path: %s", path)
+    elif opmon_type != "stdout":
         log.error("Missing 'path' in the opmon configuration, exiting.")
         sys.exit(1)
+    else:
+        if path == []:
+            path = ""
+        log.debug("No OpMon path required for type 'stdout'.")
 
     if opmon_type == "stream" and "monkafka" not in path:
         msg = "OpMon 'stream' configuration must publish to kafka, exiting."
@@ -50,18 +58,26 @@ def parse_opmon_conf(
         bootstrap, topic = path.split("/", 1)
     if not topic:
         topic = "opmon_stream"
+    log.debug("Using OpMon topic: [green]'%s'[/green]", topic)
+    log.debug("Using OpMon bootstrap: [green]'%s'[/green]", bootstrap)
 
     level = conf.get("level")
-    if not level:
+    if level:
+        log.debug("Found OpMon level: [green]%s[/green]", level)
+    else:
         log.warning(
-            "Missing 'log_level' in the opmon configuration, using default 'DEBUG'."
+            "Missing 'level' in the OpMon configuration, [yellow]using default "
+            "'DEBUG'[/yellow]."
         )
         level = logging.DEBUG
 
     interval_s = conf.get("interval_s")
-    if not interval_s:
+    if interval_s:
+        log.debug("Found OpMon interval_s: %s", interval_s)
+    else:
         log.warning(
-            "Missing 'interval_s' in the opmon configuration, using default 10s."
+            "Missing 'interval_s' in the opmon configuration, [yellow]using default "
+            "10s[/yellow]."
         )
         interval_s = 10.0
 
@@ -164,7 +180,7 @@ def to_entry(
     )
 
 
-def extract_opmon_file_path(file_path: str, origin: OpMonId | None) -> str:
+def extract_opmon_file_path(file_path: str, origin: OpMonId | None = None) -> str:
     """Verify the file path can be opened."""
     hook = "://"
     hook_position = file_path.find(hook)
@@ -190,7 +206,7 @@ def extract_opmon_file_path(file_path: str, origin: OpMonId | None) -> str:
         with open(fname, "a"):
             pass
     except OSError:
-        error_msg = "Can not open file %s", fname
-        raise OSError(error_msg) from None
+        err_str = f"Can not open file {fname}"
+        raise OSError(err_str) from None
 
     return fname
