@@ -4,6 +4,7 @@ import sys
 from datetime import datetime, tzinfo
 
 import pytz
+from google.protobuf.json_format import MessageToJson
 from google.protobuf.message import Message as Msg
 from google.protobuf.timestamp_pb2 import Timestamp
 from rich.console import Console
@@ -70,6 +71,25 @@ class LoggingFormatter(logging.Formatter):
         return super().format(record)
 
 
+def log_level_name_from_int(level: int) -> str | None:
+    """Get the level name from its int value."""
+    for k, v in log_levels.items():
+        if v == level:
+            return k
+    return None
+
+
+def publish_message(
+    logger: logging.Logger, level_name: int | str, message: str
+) -> None:
+    """Log the metric with the appropriate level."""
+    if isinstance(level_name, int):
+        level_name = log_level_name_from_int(level_name)
+    method = getattr(logger, level_name.lower(), logger.info)
+    method(message)
+    return
+
+
 class OpMonPublisher:
     """Publish operational monitoring metrics to file or stream."""
 
@@ -86,7 +106,6 @@ class OpMonPublisher:
 
         opmon_conf = parse_opmon_conf(self.log, conf, uri)
         self.type = opmon_conf.opmon_type
-        self.bootstrap = opmon_conf.bootstrap
         self.level = opmon_conf.level
         self.interval_s = opmon_conf.interval_s
         self.default_topic = "monitoring." + opmon_conf.topic
@@ -117,7 +136,7 @@ class OpMonPublisher:
         else:
             self.log.error("Unsupported OpMon type.")
             sys.exit(1)
-        self.log = logging.getLogger("OpMonPublisher.%s", self.default_topic)
+        self.log = logging.getLogger(self.default_topic)
         self.log.addHandler(handler)
         return
 
@@ -158,7 +177,7 @@ class OpMonPublisher:
         if not isinstance(message, Msg):
             self.log.error("Passed message needs to be of type google.protobuf.message")
             return
-        if not level:
+        if not level or level < self.level:
             return
         metric = to_entry(
             session=session,
@@ -168,10 +187,9 @@ class OpMonPublisher:
             substructure=substructure,
             t=Timestamp().GetCurrentTime(),
         )
+        metric = MessageToJson(metric)
         target_topic = self.extract_topic(message)
         target_key = self.extract_key(metric)
-        self.producer.send(target_topic, value=metric, key=target_key)
-        # How should this be included?
-        # What do the standard message formats look likje?
-        # When from google.protobuf.json_format import MessageToJson
+        publishing_logger = logging.getLogger(target_topic + "." + target_key)
+        publish_message(publishing_logger, level, metric)
         return

@@ -1,25 +1,13 @@
 import logging
 import sys
-from dataclasses import dataclass
 from pathlib import Path
 
 from google.protobuf.descriptor import FieldDescriptor
 from google.protobuf.message import Message as Msg
 from google.protobuf.timestamp_pb2 import Timestamp
+from opmonconf.conf import OpMonConf
 
 from opmonlib.opmon_entry_pb2 import OpMonEntry, OpMonId, OpMonValue
-
-
-@dataclass
-class OpMonConf:
-    """Define all OpMon configuration parameters."""
-
-    opmon_type: str
-    bootstrap: str
-    topic: str
-    level: int
-    interval_s: float
-    path: str
 
 
 def parse_opmon_conf(
