@@ -5,17 +5,12 @@ from datetime import datetime, tzinfo
 from pathlib import Path
 
 import pytz
-from google.protobuf.descriptor import FieldDescriptor
-from google.protobuf.message import Message as Msg
-from google.protobuf.timestamp_pb2 import Timestamp
-from kafkaopmon.OpMonPublisher import OpMonPublisher as KafkaOpMonPublisher
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.theme import Theme
 
 from opmonlib.conf import OpMonConf
-from opmonlib.opmon_entry_pb2 import OpMonEntry, OpMonId, OpMonValue
-from opmonlib.publisher import OpMonPublisher
+from opmonlib.opmon_entry_pb2 import OpMonId
 
 log_levels = {
     "CRITICAL": logging.CRITICAL,
@@ -113,43 +108,6 @@ def log_level_from_str(level: str) -> int:
     raise ValueError(err_str) from None
 
 
-def check_publisher(
-    publisher: OpMonPublisher | KafkaOpMonPublisher, log: logging.Logger
-) -> None:
-    """Validate that the publisher has a valid method to send messages."""
-    if not publisher.opmon_producer:
-        missing_producer_err_str = (
-            "Improperly initialized OpMonProducer used, nothing will be published."
-        )
-        log.error(missing_producer_err_str)
-        sys.exit(1)
-    return
-
-
-def extract_topic(
-    publisher: OpMonPublisher | KafkaOpMonPublisher, log: logging.Logger
-) -> str:
-    """Extract the target topic from the message."""
-    check_publisher(publisher, log)
-    return publisher.default_topic
-
-
-def extract_key(
-    publisher: OpMonPublisher | KafkaOpMonPublisher,
-    log: logging.Logger,
-    opmon_entry: OpMonEntry,
-) -> str:
-    """Extract  the key from the OpMonEntry."""
-    check_publisher(publisher, log)
-    key = str(opmon_entry.origin.session)
-    if opmon_entry.origin.application != "":
-        key += "." + opmon_entry.origin.application
-    for substructure_id in opmon_entry.origin.substructure:
-        key += "." + substructure_id
-    key += "/" + str(opmon_entry.measurement)
-    return key
-
-
 def parse_opmon_conf(
     log: logging.Logger, conf: dict[str:str], uri: dict[str:str]
 ) -> dict[str:str]:
@@ -224,43 +182,6 @@ def parse_opmon_conf(
     return OpMonConf(opmon_type, bootstrap, topic, level, interval_s, path)
 
 
-def make_origin(session: str, app: str) -> OpMonId:
-    """Construct and return the OpMonId."""
-    return OpMonId(session=session, application=app)
-
-
-def make_data(message: Msg, top_block: str = "") -> dict:
-    """Map each message entry to the correct data type."""
-    message_dict = {}
-    for name, descriptor in message.DESCRIPTOR.fields_by_name.items():
-        if descriptor.label == FieldDescriptor.LABEL_REPEATED:
-            continue  # Repeated values not supported in influxdb
-        if descriptor.cpp_type == FieldDescriptor.CPPTYPE_MESSAGE:
-            top_block += name + "."
-            message_dict = message_dict | make_data(getattr(message, name), top_block)
-        else:
-            message_dict[top_block + name] = to_map(
-                value=getattr(message, name), field_type=descriptor.cpp_type
-            )
-    return message_dict
-
-
-def validate_custom_origin(
-    custom_origin: dict[str, str] | None = None,
-) -> dict[str, str]:
-    """Validate that each custom_origin entry is a str."""
-    if custom_origin is None:
-        return None
-    for key, value in custom_origin.items():
-        if not isinstance(value, str):
-            try:
-                custom_origin[key] = str(value)
-            except TypeError:
-                msg = "%s is not a string and cannot be converted to one.", key
-                raise TypeError(msg) from None
-    return custom_origin
-
-
 def to_string(opmon_id: OpMonId) -> str:
     """Map the OpMonId to a string."""
     ret = opmon_id.get("session")
@@ -276,53 +197,6 @@ def to_string(opmon_id: OpMonId) -> str:
     for substructure in substructures:
         ret += "." + substructure
     return ret
-
-
-def to_map(value: int | float | bool | str, field_type: int) -> OpMonValue:
-    """Map the data entry to the correct protobuf format."""
-    formatted_opmonvalue = OpMonValue()
-    match field_type:
-        case FieldDescriptor.CPPTYPE_INT32:
-            formatted_opmonvalue.int4_value = value
-        case FieldDescriptor.CPPTYPE_INT64:
-            formatted_opmonvalue.int8_value = value
-        case FieldDescriptor.CPPTYPE_UINT32:
-            formatted_opmonvalue.uint4_value = value
-        case FieldDescriptor.CPPTYPE_UINT64:
-            formatted_opmonvalue.uint8_value = value
-        case FieldDescriptor.CPPTYPE_DOUBLE:
-            formatted_opmonvalue.double_value = value
-        case FieldDescriptor.CPPTYPE_FLOAT:
-            formatted_opmonvalue.float_value = value
-        case FieldDescriptor.CPPTYPE_BOOL:
-            formatted_opmonvalue.boolean_value = value
-        case FieldDescriptor.CPPTYPE_STRING:
-            formatted_opmonvalue.string_value = value
-        # Ignore unknown types.
-    return formatted_opmonvalue
-
-
-def to_entry(
-    session: str,
-    application: str,
-    message: Msg,
-    custom_origin: dict[str, str] | None,
-    substructure: list[str] | None,
-    t: Timestamp,
-    log: logging.Logger | None = None,
-) -> OpMonEntry:
-    """Pack all the data that needs to be published to an OpMonEntry."""
-    o = OpMonEntry(
-        time=t,
-        origin=make_origin(session, application),
-        custom_origin=validate_custom_origin(custom_origin),
-        measurement=message.DESCRIPTOR.full_name,
-        data=make_data(message),
-    )
-    if log:
-        log.error(t)
-        log.error(o.time)
-    return o
 
 
 def extract_opmon_file_path(file_path: str, origin: OpMonId | None = None) -> str:
