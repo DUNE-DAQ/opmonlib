@@ -1,13 +1,129 @@
 import logging
+import os
 import sys
+from datetime import datetime, tzinfo
 from pathlib import Path
 
+import pytz
 from google.protobuf.descriptor import FieldDescriptor
 from google.protobuf.message import Message as Msg
 from google.protobuf.timestamp_pb2 import Timestamp
+from kafkaopmon.OpMonPublisher import OpMonPublisher as KafkaOpMonPublisher
+from rich.console import Console
+from rich.logging import RichHandler
+from rich.theme import Theme
 
 from opmonlib.conf import OpMonConf
 from opmonlib.opmon_entry_pb2 import OpMonEntry, OpMonId, OpMonValue
+from opmonlib.publisher import OpMonPublisher
+
+log_levels = {
+    "CRITICAL": logging.CRITICAL,
+    "ERROR": logging.ERROR,
+    "WARNING": logging.WARNING,
+    "INFO": logging.INFO,
+    "DEBUG": logging.DEBUG,
+    "NOTSET": logging.NOTSET,
+}
+
+CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
+CONSOLE_THEMES = Theme({"info": "dim cyan", "warning": "magenta", "danger": "bold red"})
+
+# TODO: for production, remove the filename
+full_log_format = "%(asctime)s %(levelname)s %(filename)s %(name)s %(message)s"
+# TODO: for production, remove the filename
+rich_log_format = "%(filename)s %(name)s %(message)s"
+# TODO: include timezone as %Z when the RichHandler starts supporting it in the tty.
+date_time_format = "[%Y/%m/%d %H:%M:%S]"
+time_zone = pytz.utc
+
+
+class LoggingFormatter(logging.Formatter):
+    """Custom logging formatter for DUNE DAQ applications."""
+
+    def __init__(
+        self,
+        fmt: str = full_log_format,
+        datefmt: str = date_time_format,
+        tz: tzinfo = time_zone,
+    ) -> None:
+        """Construct the logging formatter."""
+        super().__init__(fmt, datefmt)
+        self.tz = tz
+        self.datefmt = datefmt
+
+    def formatTime(self, record: logging.LogRecord, datefmt: str) -> str:  # noqa: N802
+        """Apply the correct formatting to the log record date and time."""
+        date_time = datetime.fromtimestamp(record.created, self.tz)
+        return date_time.strftime(self.datefmt)
+
+    def format(self, record: logging.LogRecord) -> logging.LogRecord:
+        """Apply the correct formatting to the log record."""
+        record.asctime = self.formatTime(record, self.datefmt)
+        # TODO: for production, remove filename and lineno entries
+        component_width = 30
+        file_lineno = f"{record.filename}:{record.lineno}"
+        record.filename = file_lineno.ljust(component_width)[:component_width]
+        component_width = 45
+        name_colon = f"{record.name}:"
+        if name_colon.startswith("drunc."):
+            name_colon = name_colon.replace("drunc.", "")
+        record.name = name_colon.ljust(component_width)[:component_width]
+        component_width = 10
+        level_name = record.levelname
+        record.levelname = level_name.ljust(component_width)[:component_width]
+        return super().format(record)
+
+
+def log_level_from_int(level: int) -> str:
+    """Get the level name from its int value."""
+    for k, v in log_levels.items():
+        if v == level:
+            return k
+    err_str = f"Requested log level with value {level}, not one of the standard "
+    f"{list(log_levels.values())}"
+    raise ValueError(err_str) from None
+
+
+def log_level_from_str(level: str) -> int:
+    """Get the level int from its str value."""
+    for k, v in log_levels.items():
+        if k == level.upper():
+            return v
+    err_str = f"Requested log level with value {level} is not one of the standard "
+    f"{list(log_levels.keys())}"
+    raise ValueError(err_str) from None
+
+
+def check_publisher(
+    publisher: OpMonPublisher | KafkaOpMonPublisher, log: logging.Logger
+) -> None:
+    """Validate that the publisher has a valid method to send messages."""
+    if not publisher.opmon_producer:
+        missing_producer_err_str = (
+            "Improperly initialized OpMonProducer used, nothing will be published."
+        )
+        log.error(missing_producer_err_str)
+        sys.exit(1)
+    return
+
+
+def setup_rich_handler() -> RichHandler:
+    """Initialize a Rich handler for terminal logging."""
+    try:
+        width = os.get_terminal_size()[0]
+    except OSError:
+        width = 150
+    handler = RichHandler(
+        console=Console(width=width),
+        omit_repeated_times=False,
+        markup=True,
+        rich_tracebacks=True,
+        show_path=False,
+        tracebacks_width=width,
+    )
+    handler.setFormatter(LoggingFormatter(fmt=rich_log_format))
+    return handler
 
 
 def parse_opmon_conf(
@@ -25,7 +141,7 @@ def parse_opmon_conf(
     if opmon_type:
         log.debug("Found OpMon type: %s", opmon_type)
     else:
-        log.warning(
+        log.debug(
             "Missing 'type' in the opmon configuration, [yellow]using default value "
             "'stdout'[/yellow]."
         )
@@ -65,7 +181,7 @@ def parse_opmon_conf(
     if level:
         log.debug("Found OpMon level: [green]%s[/green]", level)
     else:
-        log.warning(
+        log.debug(
             "Missing 'level' in the OpMon configuration, [yellow]using default "
             "'DEBUG'[/yellow]."
         )
@@ -75,7 +191,7 @@ def parse_opmon_conf(
     if interval_s:
         log.debug("Found OpMon interval_s: %s", interval_s)
     else:
-        log.warning(
+        log.debug(
             "Missing 'interval_s' in the opmon configuration, [yellow]using default "
             "10s[/yellow]."
         )
@@ -169,15 +285,20 @@ def to_entry(
     custom_origin: dict[str, str] | None,
     substructure: list[str] | None,
     t: Timestamp,
+    log: logging.Logger | None = None,
 ) -> OpMonEntry:
     """Pack all the data that needs to be published to an OpMonEntry."""
-    return OpMonEntry(
+    o = OpMonEntry(
         time=t,
         origin=make_origin(session, application),
         custom_origin=validate_custom_origin(custom_origin),
         measurement=message.DESCRIPTOR.full_name,
         data=make_data(message),
     )
+    if log:
+        log.error(t)
+        log.error(o.time)
+    return o
 
 
 def extract_opmon_file_path(file_path: str, origin: OpMonId | None = None) -> str:
