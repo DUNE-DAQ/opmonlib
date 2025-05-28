@@ -3,20 +3,16 @@ import sys
 
 from google.protobuf.json_format import MessageToJson
 from google.protobuf.message import Message as Msg
-from google.protobuf.timestamp_pb2 import Timestamp
 
 from opmonlib.conf import OpMonConf
 from opmonlib.publisher_base import OpMonPublisherBase
 from opmonlib.utils import (
     LoggingFormatter,
-    extract_key,
     extract_opmon_file_path,
-    extract_topic,
     full_log_format,
     log_level_from_int,
     log_level_from_str,
     setup_rich_handler,
-    to_entry,
 )
 
 
@@ -27,9 +23,10 @@ class OpMonPublisher(OpMonPublisherBase):
         self,
         conf: OpMonConf,
         log_level: int | str = logging.INFO,
-        rich_handler: bool = True,
+        rich_handler: bool = False,
     ) -> None:
         """Construct the object to publish OpMon metrics to stdout."""
+        super().__init__()
         self.log = logging.getLogger("OpMonPublisher")
         if isinstance(log_level, str):
             log_level = log_level_from_str(log_level)
@@ -40,15 +37,6 @@ class OpMonPublisher(OpMonPublisherBase):
         if isinstance(self.conf.level, str):
             self.conf.level = log_level_from_str(self.conf.level)
 
-        if self.conf.opmon_type == "stream":
-            self.log.error("Type must not be stream to use file or stdout handling.")
-            sys.exit(1)
-
-        self.default_topic = "monitoring." + self.conf.topic
-        if self.conf.opmon_type == "file":
-            self.conf.path = extract_opmon_file_path(self.conf.path)
-
-        self.opmon_producer = logging.getLogger("monitoring." + self.default_topic)
         if self.conf.opmon_type == "stdout":
             if rich_handler:
                 handler = setup_rich_handler()
@@ -56,23 +44,28 @@ class OpMonPublisher(OpMonPublisherBase):
                 handler = logging.StreamHandler(sys.stdout)
                 handler.setFormatter(LoggingFormatter(fmt=full_log_format))
         elif self.conf.opmon_type == "file":
+            self.conf.path = extract_opmon_file_path(self.conf.path)
             handler = logging.FileHandler(self.conf.path)
+        elif self.conf.opmon_type == "stream":
+            self.log.error("Type must not be stream to use file or stdout handling.")
+            sys.exit(1)
         else:
             self.log.error("Unsupported OpMon type.")
             sys.exit(1)
 
+        self.default_topic = "monitoring." + self.conf.topic
         self.publisher = logging.getLogger(self.default_topic)
         self.publisher.addHandler(handler)
         self.publisher.setLevel(self.conf.level)
+
+        super().__post_init__()
         return
 
     def publish_message(
         self, logger: logging.Logger, level_name: int | str, message: str
     ) -> None:
         """Log the metric with the appropriate level."""
-        if isinstance(level_name, int):
-            level_name = log_level_from_int(level_name)
-        method = getattr(logger, level_name.lower(), logger.info)
+        method = getattr(logger, log_level_from_int(level_name).lower(), logger.info)
         method(message)
         return
 
@@ -95,17 +88,15 @@ class OpMonPublisher(OpMonPublisherBase):
             level = self.conf.level
         if level < self.conf.level:
             return
-        metric = to_entry(
+        metric = self.to_entry(
             session=session,
             application=application,
             message=message,
             custom_origin=custom_origin,
             substructure=substructure,
-            t=Timestamp().GetCurrentTime(),
-            log=self.log,
         )
-        target_topic = extract_topic(message)
-        target_key = extract_key(metric)
+        target_topic = self.extract_topic(message)
+        target_key = self.extract_key(metric)
         publishing_logger = logging.getLogger(
             f"{self.publisher.name}.{target_topic}.{target_key}"
         )

@@ -1,4 +1,3 @@
-import logging
 import sys
 from abc import ABC, abstractmethod
 
@@ -6,6 +5,7 @@ from google.protobuf.descriptor import FieldDescriptor
 from google.protobuf.message import Message as Msg
 from google.protobuf.timestamp_pb2 import Timestamp
 
+from opmonlib.conf import OpMonConf
 from opmonlib.opmon_entry_pb2 import OpMonEntry, OpMonId, OpMonValue
 
 
@@ -15,7 +15,27 @@ class OpMonPublisherBase(ABC):
     @abstractmethod
     def __init__(self) -> None:
         """Construct the publisher."""
+        self.ts = Timestamp()
         pass
+
+    def __post_init__(self) -> None:
+        """Perform post-init checks."""
+        if not self.log:
+            err_msg = "OpMon publisher must have a logger."
+            raise (err_msg)
+        if not self.conf:
+            err_msg = "OpMon publisher must have a configuration."
+            raise AttributeError(err_msg)
+        if not isinstance(self.conf, OpMonConf):
+            err_msg = "OpMon configuration must be of type OpMonConf."
+            raise TypeError(err_msg)
+        if not self.publisher:
+            err_msg = "OpMon publisher must have a publisher"
+            raise AttributeError(err_msg)
+        if not self.default_topic:
+            err_msg = "OpMon publisher must have a default_topic"
+            raise AttributeError(err_msg)
+        return
 
     @abstractmethod
     def publish(
@@ -30,10 +50,20 @@ class OpMonPublisherBase(ABC):
         """Publish an OpMonEntry to the relevant location."""
         pass
 
-    def extract_topic(self) -> str:
+    def check_publisher(self) -> None:
+        """Validate that the publisher has a valid method to send messages."""
+        if not self.publisher:
+            missing_producer_err_str = (
+                "Improperly initialized OpMonProducer used, nothing will be published."
+            )
+            self.log.error(missing_producer_err_str)
+            sys.exit(1)
+        return
+
+    def extract_topic(self, message: Msg) -> str:
         """Extract the target topic from the message."""
         self.check_publisher()
-        return self.publisher.default_topic
+        return self.default_topic
 
     def extract_key(self, opmon_entry: OpMonEntry) -> str:
         """Extract  the key from the OpMonEntry."""
@@ -46,19 +76,24 @@ class OpMonPublisherBase(ABC):
         key += "/" + str(opmon_entry.measurement)
         return key
 
-    def check_publisher(self) -> None:
-        """Validate that the publisher has a valid method to send messages."""
-        if not self.publisher.opmon_producer:
-            missing_producer_err_str = (
-                "Improperly initialized OpMonProducer used, nothing will be published."
-            )
-            self.log.error(missing_producer_err_str)
-            sys.exit(1)
-        return
-
     def make_origin(self, session: str, app: str) -> OpMonId:
         """Construct and return the OpMonId."""
         return OpMonId(session=session, application=app)
+
+    def validate_custom_origin(
+        self, custom_origin: dict[str, str] | None = None
+    ) -> dict[str, str]:
+        """Validate that each custom_origin entry is a str."""
+        if custom_origin is None:
+            return None
+        for key, value in custom_origin.items():
+            if not isinstance(value, str):
+                try:
+                    custom_origin[key] = str(value)
+                except TypeError:
+                    msg = "%s is not a string and cannot be converted to one.", key
+                    raise TypeError(msg) from None
+        return custom_origin
 
     def make_data(self, message: Msg, top_block: str = "") -> dict:
         """Map each message entry to the correct data type."""
@@ -76,21 +111,6 @@ class OpMonPublisherBase(ABC):
                     value=getattr(message, name), field_type=descriptor.cpp_type
                 )
         return message_dict
-
-    def validate_custom_origin(
-        self, custom_origin: dict[str, str] | None = None
-    ) -> dict[str, str]:
-        """Validate that each custom_origin entry is a str."""
-        if custom_origin is None:
-            return None
-        for key, value in custom_origin.items():
-            if not isinstance(value, str):
-                try:
-                    custom_origin[key] = str(value)
-                except TypeError:
-                    msg = "%s is not a string and cannot be converted to one.", key
-                    raise TypeError(msg) from None
-        return custom_origin
 
     def to_map(self, value: int | float | bool | str, field_type: int) -> OpMonValue:
         """Map the data entry to the correct protobuf format."""
@@ -122,18 +142,13 @@ class OpMonPublisherBase(ABC):
         message: Msg,
         custom_origin: dict[str, str] | None,
         substructure: list[str] | None,
-        t: Timestamp,
-        log: logging.Logger | None = None,
     ) -> OpMonEntry:
         """Pack all the data that needs to be published to an OpMonEntry."""
-        o = OpMonEntry(
-            time=t,
+        self.ts.GetCurrentTime()
+        return OpMonEntry(
+            time=self.ts,
             origin=self.make_origin(session, application),
             custom_origin=self.validate_custom_origin(custom_origin),
             measurement=message.DESCRIPTOR.full_name,
             data=self.make_data(message),
         )
-        if log:
-            log.error(t)
-            log.error(o.time)
-        return o
