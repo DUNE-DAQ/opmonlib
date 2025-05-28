@@ -75,6 +75,24 @@ class LoggingFormatter(logging.Formatter):
         return super().format(record)
 
 
+def setup_rich_handler() -> RichHandler:
+    """Initialize a Rich handler for terminal logging."""
+    try:
+        width = os.get_terminal_size()[0]
+    except OSError:
+        width = 150
+    handler = RichHandler(
+        console=Console(width=width),
+        omit_repeated_times=False,
+        markup=True,
+        rich_tracebacks=True,
+        show_path=False,
+        tracebacks_width=width,
+    )
+    handler.setFormatter(LoggingFormatter(fmt=rich_log_format))
+    return handler
+
+
 def log_level_from_int(level: int) -> str:
     """Get the level name from its int value."""
     for k, v in log_levels.items():
@@ -106,24 +124,6 @@ def check_publisher(
         log.error(missing_producer_err_str)
         sys.exit(1)
     return
-
-
-def setup_rich_handler() -> RichHandler:
-    """Initialize a Rich handler for terminal logging."""
-    try:
-        width = os.get_terminal_size()[0]
-    except OSError:
-        width = 150
-    handler = RichHandler(
-        console=Console(width=width),
-        omit_repeated_times=False,
-        markup=True,
-        rich_tracebacks=True,
-        show_path=False,
-        tracebacks_width=width,
-    )
-    handler.setFormatter(LoggingFormatter(fmt=rich_log_format))
-    return handler
 
 
 def parse_opmon_conf(
@@ -200,6 +200,43 @@ def parse_opmon_conf(
     return OpMonConf(opmon_type, bootstrap, topic, level, interval_s, path)
 
 
+def make_origin(session: str, app: str) -> OpMonId:
+    """Construct and return the OpMonId."""
+    return OpMonId(session=session, application=app)
+
+
+def make_data(message: Msg, top_block: str = "") -> dict:
+    """Map each message entry to the correct data type."""
+    message_dict = {}
+    for name, descriptor in message.DESCRIPTOR.fields_by_name.items():
+        if descriptor.label == FieldDescriptor.LABEL_REPEATED:
+            continue  # Repeated values not supported in influxdb
+        if descriptor.cpp_type == FieldDescriptor.CPPTYPE_MESSAGE:
+            top_block += name + "."
+            message_dict = message_dict | make_data(getattr(message, name), top_block)
+        else:
+            message_dict[top_block + name] = to_map(
+                value=getattr(message, name), field_type=descriptor.cpp_type
+            )
+    return message_dict
+
+
+def validate_custom_origin(
+    custom_origin: dict[str, str] | None = None,
+) -> dict[str, str]:
+    """Validate that each custom_origin entry is a str."""
+    if custom_origin is None:
+        return None
+    for key, value in custom_origin.items():
+        if not isinstance(value, str):
+            try:
+                custom_origin[key] = str(value)
+            except TypeError:
+                msg = "%s is not a string and cannot be converted to one.", key
+                raise TypeError(msg) from None
+    return custom_origin
+
+
 def to_string(opmon_id: OpMonId) -> str:
     """Map the OpMonId to a string."""
     ret = opmon_id.get("session")
@@ -239,43 +276,6 @@ def to_map(value: int | float | bool | str, field_type: int) -> OpMonValue:
             formatted_opmonvalue.string_value = value
         # Ignore unknown types.
     return formatted_opmonvalue
-
-
-def make_data(message: Msg, top_block: str = "") -> dict:
-    """Map each message entry to the correct data type."""
-    message_dict = {}
-    for name, descriptor in message.DESCRIPTOR.fields_by_name.items():
-        if descriptor.label == FieldDescriptor.LABEL_REPEATED:
-            continue  # Repeated values not supported in influxdb
-        if descriptor.cpp_type == FieldDescriptor.CPPTYPE_MESSAGE:
-            top_block += name + "."
-            message_dict = message_dict | make_data(getattr(message, name), top_block)
-        else:
-            message_dict[top_block + name] = to_map(
-                value=getattr(message, name), field_type=descriptor.cpp_type
-            )
-    return message_dict
-
-
-def validate_custom_origin(
-    custom_origin: dict[str, str] | None = None,
-) -> dict[str, str]:
-    """Validate that each custom_origin entry is a str."""
-    if custom_origin is None:
-        return None
-    for key, value in custom_origin.items():
-        if not isinstance(value, str):
-            try:
-                custom_origin[key] = str(value)
-            except TypeError:
-                msg = "%s is not a string and cannot be converted to one.", key
-                raise TypeError(msg) from None
-    return custom_origin
-
-
-def make_origin(session: str, app: str) -> OpMonId:
-    """Construct and return the OpMonId."""
-    return OpMonId(session=session, application=app)
 
 
 def to_entry(

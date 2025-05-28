@@ -9,6 +9,7 @@ from opmonlib.conf import OpMonConf
 from opmonlib.opmon_entry_pb2 import OpMonEntry
 from opmonlib.utils import (
     LoggingFormatter,
+    check_publisher,
     extract_opmon_file_path,
     full_log_format,
     log_level_from_int,
@@ -66,12 +67,12 @@ class OpMonPublisher:
 
     def extract_topic(self, message: Msg) -> str:
         """Extract the target topic from the message."""
-        self.check_producer()
+        check_publisher(self.publisher, self.log)
         return self.default_topic
 
     def extract_key(self, opmon_entry: OpMonEntry) -> str:
         """Extract  the key from the OpMonEntry."""
-        self.check_producer()
+        check_publisher(self.publisher, self.log)
         key = str(opmon_entry.origin.session)
         if opmon_entry.origin.application != "":
             key += "." + opmon_entry.origin.application
