@@ -6,7 +6,7 @@ from google.protobuf.message import Message as Msg
 from google.protobuf.timestamp_pb2 import Timestamp
 
 from opmonlib.conf import OpMonConf
-from opmonlib.publisher_base import opmon_publisher_base
+from opmonlib.publisher_base import OpMonPublisherBase
 from opmonlib.utils import (
     LoggingFormatter,
     extract_key,
@@ -20,7 +20,7 @@ from opmonlib.utils import (
 )
 
 
-class OpMonPublisher(opmon_publisher_base):
+class OpMonPublisher(OpMonPublisherBase):
     """Publish operational monitoring metrics to file or stream."""
 
     def __init__(
