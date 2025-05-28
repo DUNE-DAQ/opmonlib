@@ -126,6 +126,30 @@ def check_publisher(
     return
 
 
+def extract_topic(
+    publisher: OpMonPublisher | KafkaOpMonPublisher, log: logging.Logger
+) -> str:
+    """Extract the target topic from the message."""
+    check_publisher(publisher, log)
+    return publisher.default_topic
+
+
+def extract_key(
+    publisher: OpMonPublisher | KafkaOpMonPublisher,
+    log: logging.Logger,
+    opmon_entry: OpMonEntry,
+) -> str:
+    """Extract  the key from the OpMonEntry."""
+    check_publisher(publisher, log)
+    key = str(opmon_entry.origin.session)
+    if opmon_entry.origin.application != "":
+        key += "." + opmon_entry.origin.application
+    for substructure_id in opmon_entry.origin.substructure:
+        key += "." + substructure_id
+    key += "/" + str(opmon_entry.measurement)
+    return key
+
+
 def parse_opmon_conf(
     log: logging.Logger, conf: dict[str:str], uri: dict[str:str]
 ) -> dict[str:str]:

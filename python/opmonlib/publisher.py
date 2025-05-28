@@ -6,11 +6,11 @@ from google.protobuf.message import Message as Msg
 from google.protobuf.timestamp_pb2 import Timestamp
 
 from opmonlib.conf import OpMonConf
-from opmonlib.opmon_entry_pb2 import OpMonEntry
 from opmonlib.utils import (
     LoggingFormatter,
-    check_publisher,
+    extract_key,
     extract_opmon_file_path,
+    extract_topic,
     full_log_format,
     log_level_from_int,
     log_level_from_str,
@@ -65,22 +65,6 @@ class OpMonPublisher:
         self.publisher.setLevel(self.conf.level)
         return
 
-    def extract_topic(self, message: Msg) -> str:
-        """Extract the target topic from the message."""
-        check_publisher(self.publisher, self.log)
-        return self.default_topic
-
-    def extract_key(self, opmon_entry: OpMonEntry) -> str:
-        """Extract  the key from the OpMonEntry."""
-        check_publisher(self.publisher, self.log)
-        key = str(opmon_entry.origin.session)
-        if opmon_entry.origin.application != "":
-            key += "." + opmon_entry.origin.application
-        for substructure_id in opmon_entry.origin.substructure:
-            key += "." + substructure_id
-        key += "/" + str(opmon_entry.measurement)
-        return key
-
     def publish_message(
         self, logger: logging.Logger, level_name: int | str, message: str
     ) -> None:
@@ -119,8 +103,8 @@ class OpMonPublisher:
             t=Timestamp().GetCurrentTime(),
             log=self.log,
         )
-        target_topic = self.extract_topic(message)
-        target_key = self.extract_key(metric)
+        target_topic = extract_topic(message)
+        target_key = extract_key(metric)
         publishing_logger = logging.getLogger(
             f"{self.publisher.name}.{target_topic}.{target_key}"
         )
