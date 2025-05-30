@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import logging
 import os
 import sys
 from datetime import datetime, tzinfo
 from pathlib import Path
 
+import conffwk
 import pytz
 from rich.console import Console
 from rich.logging import RichHandler
@@ -109,7 +112,9 @@ def log_level_from_str(level: str) -> int:
 
 
 def parse_opmon_conf(
-    log: logging.Logger, conf: dict[str:str], uri: dict[str:str]
+    log: logging.Logger,
+    conf: dict[str:str] | "conffwk.dal.OpMonConf",  # noqa: UP037
+    uri: dict[str:str] | "conffwk.dal.OpMonURI",  # noqa: UP037
 ) -> dict[str:str]:
     """Parse the OpMonConf and OpMonURI."""
     if not conf:
@@ -119,7 +124,9 @@ def parse_opmon_conf(
         log.error("Missing opmon URI, exiting.")
         sys.exit(1)
 
-    opmon_type = uri.get("type")
+    opmon_type = (
+        uri.get("type") if isinstance(uri, dict) else getattr(uri, "type", None)
+    )
     if opmon_type:
         log.debug("Found OpMon type: %s", opmon_type)
     else:
@@ -129,7 +136,7 @@ def parse_opmon_conf(
         )
         opmon_type = "stdout"
 
-    path = uri.get("path")
+    path = uri.get("path") if isinstance(uri, dict) else getattr(uri, "path", None)
     if path:
         log.debug("Found OpMon path: %s", path)
     elif opmon_type != "stdout":
@@ -150,16 +157,18 @@ def parse_opmon_conf(
     bootstrap = None
     topic = None
     if opmon_type == "file" and not Path(path).parent.is_dir():
-        log.error("Requested directory to put file in does not exist.")
-        sys.exit(1)
-    elif "monkafka" in path:
+        err_str = "Requested directory to put file in does not exist."
+        raise ValueError(err_str) from None
+    if "monkafka" in path:
         bootstrap, topic = path.split("/", 1)
     if not topic:
         topic = "opmon_stream"
     log.debug("Using OpMon topic: [green]'%s'[/green]", topic)
     log.debug("Using OpMon bootstrap: [green]'%s'[/green]", bootstrap)
 
-    level = conf.get("level")
+    level = (
+        conf.get("level") if isinstance(conf, dict) else getattr(conf, "level", None)
+    )
     if level:
         log.debug("Found OpMon level: [green]%s[/green]", level)
     else:
@@ -169,7 +178,11 @@ def parse_opmon_conf(
         )
         level = logging.DEBUG
 
-    interval_s = conf.get("interval_s")
+    interval_s = (
+        conf.get("interval_s")
+        if isinstance(conf, dict)
+        else getattr(conf, "interval_s", None)
+    )
     if interval_s:
         log.debug("Found OpMon interval_s: %s", interval_s)
     else:

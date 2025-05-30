@@ -76,9 +76,11 @@ class OpMonPublisherBase(ABC):
         key += "/" + str(opmon_entry.measurement)
         return key
 
-    def make_origin(self, session: str, app: str) -> OpMonId:
+    def make_origin(
+        self, session: str, app: str, substructure: dict[str, str] | None
+    ) -> OpMonId:
         """Construct and return the OpMonId."""
-        return OpMonId(session=session, application=app)
+        return OpMonId(session=session, application=app, substructure=substructure)
 
     def validate_custom_origin(
         self, custom_origin: dict[str, str] | None = None
@@ -147,7 +149,7 @@ class OpMonPublisherBase(ABC):
         self.ts.GetCurrentTime()
         return OpMonEntry(
             time=self.ts,
-            origin=self.make_origin(session, application),
+            origin=self.make_origin(session, application, substructure),
             custom_origin=self.validate_custom_origin(custom_origin),
             measurement=message.DESCRIPTOR.full_name,
             data=self.make_data(message),
