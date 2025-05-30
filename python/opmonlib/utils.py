@@ -15,7 +15,7 @@ from rich.theme import Theme
 from opmonlib.conf import OpMonConf
 from opmonlib.opmon_entry_pb2 import OpMonId
 
-log_levels = {
+logging_log_levels = {
     "CRITICAL": logging.CRITICAL,
     "ERROR": logging.ERROR,
     "WARNING": logging.WARNING,
@@ -23,6 +23,25 @@ log_levels = {
     "DEBUG": logging.DEBUG,
     "NOTSET": logging.NOTSET,
 }
+
+oks_log_levels = {
+    "kTopPriority": 0,
+    "kEventDriven": 1073741824,
+    "kDefault": 2147483648,
+    "kLowestPriority": 4294967295,
+}
+
+oks_to_logging_map = {
+    "kTopPriority": "ERROR",
+    "kEventDriven": "WARNING",
+    "kDefault": "INFO",
+    "kLowestPriority": "DEBUG",
+}
+
+e_log_levels = (
+    f"{list(logging_log_levels.keys())} python logging or "
+    f"{list(oks_log_levels.values())} for oks log levels."
+)
 
 CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
 CONSOLE_THEMES = Theme({"info": "dim cyan", "warning": "magenta", "danger": "bold red"})
@@ -91,23 +110,27 @@ def setup_rich_handler() -> RichHandler:
     return handler
 
 
-def log_level_from_int(level: int) -> str:
+def logging_log_level_from_int(level: int) -> str:
     """Get the level name from its int value."""
-    for k, v in log_levels.items():
+    for k, v in logging_log_levels.items():
         if v == level:
             return k
-    err_str = f"Requested log level with value {level}, not one of the standard "
-    f"{list(log_levels.values())}"
+    for k, v in oks_log_levels.items():
+        if v == level:
+            return oks_to_logging_map[k]
+    err_str = f"Requested log level with value {level} is not standard ({e_log_levels})"
     raise ValueError(err_str) from None
 
 
-def log_level_from_str(level: str) -> int:
+def logging_log_level_from_str(level: str) -> int:
     """Get the level int from its str value."""
-    for k, v in log_levels.items():
+    for k, v in logging_log_levels.items():
         if k == level.upper():
             return v
-    err_str = f"Requested log level with value {level} is not one of the standard "
-    f"{list(log_levels.keys())}"
+    for k in oks_log_levels.keys():
+        if k == level:
+            return logging_log_levels[oks_to_logging_map[k]]
+    err_str = f"Requested log level with value {level} is not standard ({e_log_levels})"
     raise ValueError(err_str) from None
 
 

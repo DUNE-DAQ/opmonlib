@@ -10,8 +10,8 @@ from opmonlib.utils import (
     LoggingFormatter,
     extract_opmon_file_path,
     full_log_format,
-    log_level_from_int,
-    log_level_from_str,
+    logging_log_level_from_int,
+    logging_log_level_from_str,
     setup_rich_handler,
 )
 
@@ -29,13 +29,13 @@ class OpMonPublisher(OpMonPublisherBase):
         super().__init__()
         self.log = logging.getLogger("OpMonPublisher")
         if isinstance(log_level, str):
-            log_level = log_level_from_str(log_level)
+            log_level = logging_log_level_from_str(log_level)
         self.log.setLevel(log_level)
         self.log.addHandler(setup_rich_handler())
 
         self.conf = conf
         if isinstance(self.conf.level, str):
-            self.conf.level = log_level_from_str(self.conf.level)
+            self.conf.level = logging_log_level_from_str(self.conf.level)
 
         if self.conf.opmon_type == "stdout":
             if rich_handler:
@@ -65,7 +65,9 @@ class OpMonPublisher(OpMonPublisherBase):
         self, logger: logging.Logger, level_name: int | str, message: str
     ) -> None:
         """Log the metric with the appropriate level."""
-        method = getattr(logger, log_level_from_int(level_name).lower(), logger.info)
+        method = getattr(
+            logger, logging_log_level_from_int(level_name).lower(), logger.info
+        )
         method(message)
         return
 
@@ -83,7 +85,7 @@ class OpMonPublisher(OpMonPublisherBase):
             self.log.error("Passed message needs to be of type google.protobuf.message")
             return
         if isinstance(level, str):
-            level = log_level_from_int(level)
+            level = logging_log_level_from_int(level)
         if not level:
             level = self.conf.level
         if level < self.conf.level:
