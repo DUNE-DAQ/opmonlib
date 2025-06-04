@@ -8,10 +8,10 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from opmonlib.conf import OpMonConf
 from opmonlib.opmon_entry_pb2 import OpMonEntry, OpMonId, OpMonValue
 from opmonlib.utils import (
+    LogLevelError,
     logging_log_levels,
     oks_log_levels,
     oks_to_logging_map,
-    LogLevelError
 )
 
 
@@ -141,7 +141,7 @@ class OpMonPublisherBase(ABC):
             case FieldDescriptor.CPPTYPE_STRING:
                 formatted_opmonvalue.string_value = value
             case _:
-                pass # Ignore unknown types.
+                pass  # Ignore unknown types.
         return formatted_opmonvalue
 
     def to_entry(
@@ -161,32 +161,37 @@ class OpMonPublisherBase(ABC):
             measurement=message.DESCRIPTOR.full_name,
             data=self.make_data(message),
         )
-    
+
     def log_level_to_int(self, level: str | int) -> int:
+        """Convert the log level to the equivalent level in python logging as an int."""
         if isinstance(level, int):
             if level in oks_log_levels.values():
-                oks_level_name = next(k for k, v in oks_log_levels.items() if v == level)
+                oks_level_name = next(
+                    k for k, v in oks_log_levels.items() if v == level
+                )
                 return logging_log_levels[oks_to_logging_map[oks_level_name]]
-            elif level in logging_log_levels.values():
+            if level in logging_log_levels.values():
                 return level
         elif isinstance(level, str):
             if level in oks_log_levels.keys():
                 return logging_log_levels[oks_to_logging_map[level]]
-            elif level.upper() in logging_log_levels.keys():
+            if level.upper() in logging_log_levels.keys():
                 return logging_log_levels[level.upper()]
         raise LogLevelError(level)
-            
-   
+
     def log_level_to_str(self, level: str | int) -> str:
+        """Convert the log level to the equivalent level in python logging as a str."""
         if isinstance(level, str):
             if level in oks_log_levels.keys():
                 return oks_to_logging_map[level]
-            elif level in logging_log_levels.keys():
+            if level in logging_log_levels.keys():
                 return level
         elif isinstance(level, int):
             if level in oks_log_levels.values():
-                oks_level_name = next(k for k, v in oks_log_levels.items() if v == level)
+                oks_level_name = next(
+                    k for k, v in oks_log_levels.items() if v == level
+                )
                 return oks_to_logging_map[oks_level_name]
-            elif level in logging_log_levels.values():
+            if level in logging_log_levels.values():
                 return next(k for k, v in logging_log_levels.items() if v == level)
-        return
+        return None

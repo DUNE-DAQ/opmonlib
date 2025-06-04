@@ -11,7 +11,6 @@ from opmonlib.utils import (
     extract_opmon_file_path,
     full_log_format,
     setup_rich_handler,
-    logging_log_levels
 )
 
 

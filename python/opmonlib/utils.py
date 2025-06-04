@@ -47,16 +47,26 @@ oks_to_logging_map = {
 log_level_keys = logging_log_level_keys + oks_log_level_keys
 log_level_values = logging_log_level_values + logging_log_level_values
 
+
 class LogLevelError(Exception):
     """Custom error for unrecognised log level."""
+
     def __init__(self, level: str | int) -> None:
+        """Constructor."""
         if isinstance(level, str):
-            err_msg = f"Level '{level}' is not one of the recognised levels ({log_level_keys})."
+            err_msg = (
+                f"Level '{level}' is not one of the recognised level names "
+                f"({log_level_keys})."
+            )
         elif isinstance(level, int):
-            err_msg = f"Level '{level}' is not one of the recognised levels ({log_level_values})."
+            err_msg = (
+                f"Level '{level}' is not one of the recognised level values "
+                f"({log_level_values})."
+            )
         else:
             err_msg = f"Level '{level}' is not of a supported type."
         super().__init__(err_msg)
+
 
 e_log_levels = (
     f"{logging_log_level_keys} python logging or "
@@ -161,7 +171,7 @@ def logging_log_level_from_str(level: str) -> int:
 def parse_opmon_conf(
     log: logging.Logger,
     conf: dict[str:str] | "conffwk.dal.OpMonConf",  # noqa: UP037
-    uri: dict[str:str] | "conffwk.dal.OpMonURI",  # noqa: UP037.
+    uri: dict[str:str] | conffwk.dal.OpMonURI,  # noqa: UP037.
 ) -> dict[str:str]:
     """Parse the OpMonConf and OpMonURI."""
     if not conf:
@@ -256,7 +266,7 @@ def to_string(opmon_id: OpMonId) -> str:
     substructures = opmon_id.get("substructure")
     for substructure in substructures:
         ret += "." + substructure
-    
+
     return ret
 
 
