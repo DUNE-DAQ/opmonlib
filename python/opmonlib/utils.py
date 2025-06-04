@@ -24,12 +24,18 @@ logging_log_levels = {
     "NOTSET": logging.NOTSET,
 }
 
+logging_log_level_keys = list(logging_log_levels.keys())
+logging_log_level_values = list(logging_log_levels.values())
+
 oks_log_levels = {
     "kTopPriority": 0,
     "kEventDriven": 1073741824,
     "kDefault": 2147483648,
     "kLowestPriority": 4294967295,
 }
+
+oks_log_level_keys = list(oks_log_levels.keys())
+oks_log_level_values = list(oks_log_levels.values())
 
 oks_to_logging_map = {
     "kTopPriority": "ERROR",
@@ -38,9 +44,23 @@ oks_to_logging_map = {
     "kLowestPriority": "DEBUG",
 }
 
+log_level_keys = logging_log_level_keys + oks_log_level_keys
+log_level_values = logging_log_level_values + logging_log_level_values
+
+class LogLevelError(Exception):
+    """Custom error for unrecognised log level."""
+    def __init__(self, level: str | int) -> None:
+        if isinstance(level, str):
+            err_msg = f"Level '{level}' is not one of the recognised levels ({log_level_keys})."
+        elif isinstance(level, int):
+            err_msg = f"Level '{level}' is not one of the recognised levels ({log_level_values})."
+        else:
+            err_msg = f"Level '{level}' is not of a supported type."
+        super().__init__(err_msg)
+
 e_log_levels = (
-    f"{list(logging_log_levels.keys())} python logging or "
-    f"{list(oks_log_levels.values())} for oks log levels."
+    f"{logging_log_level_keys} python logging or "
+    f"{oks_log_level_keys} for oks log levels."
 )
 
 CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
@@ -112,6 +132,8 @@ def setup_rich_handler() -> RichHandler:
 
 def logging_log_level_from_int(level: int) -> str:
     """Get the level name from its int value."""
+    if not isinstance(level, int):
+        return level
     for k, v in logging_log_levels.items():
         if v == level:
             return k
@@ -124,6 +146,8 @@ def logging_log_level_from_int(level: int) -> str:
 
 def logging_log_level_from_str(level: str) -> int:
     """Get the level int from its str value."""
+    if not isinstance(level, str):
+        return level
     for k, v in logging_log_levels.items():
         if k == level.upper():
             return v
@@ -137,7 +161,7 @@ def logging_log_level_from_str(level: str) -> int:
 def parse_opmon_conf(
     log: logging.Logger,
     conf: dict[str:str] | "conffwk.dal.OpMonConf",  # noqa: UP037
-    uri: dict[str:str] | "conffwk.dal.OpMonURI",  # noqa: UP037
+    uri: dict[str:str] | "conffwk.dal.OpMonURI",  # noqa: UP037.
 ) -> dict[str:str]:
     """Parse the OpMonConf and OpMonURI."""
     if not conf:
@@ -232,6 +256,7 @@ def to_string(opmon_id: OpMonId) -> str:
     substructures = opmon_id.get("substructure")
     for substructure in substructures:
         ret += "." + substructure
+    
     return ret
 
 

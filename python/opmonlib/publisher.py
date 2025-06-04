@@ -10,9 +10,8 @@ from opmonlib.utils import (
     LoggingFormatter,
     extract_opmon_file_path,
     full_log_format,
-    logging_log_level_from_int,
-    logging_log_level_from_str,
     setup_rich_handler,
+    logging_log_levels
 )
 
 
@@ -28,14 +27,13 @@ class OpMonPublisher(OpMonPublisherBase):
         """Construct the object to publish OpMon metrics to stdout."""
         super().__init__()
         self.log = logging.getLogger("OpMonPublisher")
-        if isinstance(log_level, str):
-            log_level = logging_log_level_from_str(log_level)
+        if not isinstance(log_level, int):
+            log_level = self.log_level_to_int(log_level)
         self.log.setLevel(log_level)
         self.log.addHandler(setup_rich_handler())
 
         self.conf = conf
-        if isinstance(self.conf.level, str):
-            self.conf.level = logging_log_level_from_str(self.conf.level)
+        self.conf.level = self.log_level_to_int(self.conf.level)
 
         if self.conf.opmon_type == "stdout":
             if rich_handler:
@@ -62,12 +60,10 @@ class OpMonPublisher(OpMonPublisherBase):
         return
 
     def publish_message(
-        self, logger: logging.Logger, level_name: int | str, message: str
+        self, logger: logging.Logger, level: int | str, message: str
     ) -> None:
         """Log the metric with the appropriate level."""
-        method = getattr(
-            logger, logging_log_level_from_int(level_name).lower(), logger.info
-        )
+        method = getattr(logger, self.log_level_to_str(level).lower(), logger.info)
         method(message)
         return
 
@@ -84,12 +80,14 @@ class OpMonPublisher(OpMonPublisherBase):
         if not isinstance(message, Msg):
             self.log.error("Passed message needs to be of type google.protobuf.message")
             return
-        if isinstance(level, str):
-            level = logging_log_level_from_int(level)
+
         if not level:
             level = self.conf.level
+        if not isinstance(level, int):
+            level = self.log_level_to_int(level)
         if level < self.conf.level:
             return
+
         metric = self.to_entry(
             session=session,
             application=application,
