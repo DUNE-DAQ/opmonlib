@@ -22,6 +22,7 @@ class OpMonPublisherBase(ABC):
     def __init__(self) -> None:
         """Construct the publisher."""
         self.ts = Timestamp()
+        self.substructure = None
         pass
 
     def __post_init__(self) -> None:
@@ -46,8 +47,6 @@ class OpMonPublisherBase(ABC):
     @abstractmethod
     def publish(
         self,
-        session: str,
-        application: str,
         message: Msg,
         custom_origin: dict[str, str] | None = None,
         substructure: list[str] | None = None,
@@ -71,11 +70,9 @@ class OpMonPublisherBase(ABC):
         self.check_publisher()
         return self.default_topic
 
-    def make_origin(
-        self, session: str, app: str, substructure: dict[str, str] | None
-    ) -> OpMonId:
+    def make_origin(self, session: str, app: str) -> OpMonId:
         """Construct and return the OpMonId."""
-        return OpMonId(session=session, application=app, substructure=substructure)
+        return OpMonId(session=session, application=app, substructure=self.substructure)
 
     def validate_custom_origin(
         self, custom_origin: dict[str, str] | None = None
@@ -134,18 +131,13 @@ class OpMonPublisherBase(ABC):
         return formatted_opmonvalue
 
     def to_entry(
-        self,
-        session: str,
-        application: str,
-        message: Msg,
-        custom_origin: dict[str, str] | None,
-        substructure: list[str] | None,
+        self, message: Msg, custom_origin: dict[str, str] | None
     ) -> OpMonEntry:
         """Pack all the data that needs to be published to an OpMonEntry."""
         self.ts.GetCurrentTime()
         return OpMonEntry(
             time=self.ts,
-            origin=self.make_origin(session, application, substructure),
+            origin=self.make_origin(self.conf.session, self.conf.application),
             custom_origin=self.validate_custom_origin(custom_origin),
             measurement=message.DESCRIPTOR.full_name,
             data=self.make_data(message),

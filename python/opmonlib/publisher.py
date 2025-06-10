@@ -68,11 +68,8 @@ class OpMonPublisher(OpMonPublisherBase):
 
     def publish(
         self,
-        session: str,
-        application: str,
         message: Msg,
         custom_origin: dict[str, str] | None = None,
-        substructure: list[str] | None = None,
         level: int | str | None = None,
     ) -> None:
         """Publish the message to either a file or the terminal."""
@@ -87,13 +84,7 @@ class OpMonPublisher(OpMonPublisherBase):
         if level < self.conf.level:
             return
 
-        metric = self.to_entry(
-            session=session,
-            application=application,
-            message=message,
-            custom_origin=custom_origin,
-            substructure=substructure,
-        )
+        metric = self.to_entry(message=message, custom_origin=custom_origin)
         target_topic = self.extract_topic(message)
         publishing_logger = logging.getLogger(f"{self.publisher.name}.{target_topic}")
         self.publish_message(publishing_logger, level, MessageToJson(metric))

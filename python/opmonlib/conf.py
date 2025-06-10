@@ -11,3 +11,5 @@ class OpMonConf:
     level: int
     interval_s: float
     path: str
+    session: str
+    application: str

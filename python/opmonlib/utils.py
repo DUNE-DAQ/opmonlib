@@ -172,6 +172,8 @@ def parse_opmon_conf(
     log: logging.Logger,
     conf: dict[str:str] | "conffwk.dal.OpMonConf",  # noqa: UP037
     uri: dict[str:str] | conffwk.dal.OpMonURI,  # noqa: UP037.
+    session: str,
+    application: str,
 ) -> dict[str:str]:
     """Parse the OpMonConf and OpMonURI."""
     if not conf:
@@ -249,7 +251,9 @@ def parse_opmon_conf(
         )
         interval_s = 10.0
 
-    return OpMonConf(opmon_type, bootstrap, topic, level, interval_s, path)
+    return OpMonConf(
+        opmon_type, bootstrap, topic, level, interval_s, path, session, application
+    )
 
 
 def to_string(opmon_id: OpMonId) -> str:
