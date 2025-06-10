@@ -95,9 +95,6 @@ class OpMonPublisher(OpMonPublisherBase):
             substructure=substructure,
         )
         target_topic = self.extract_topic(message)
-        target_key = self.extract_key(metric)
-        publishing_logger = logging.getLogger(
-            f"{self.publisher.name}.{target_topic}.{target_key}"
-        )
+        publishing_logger = logging.getLogger(f"{self.publisher.name}.{target_topic}")
         self.publish_message(publishing_logger, level, MessageToJson(metric))
         return

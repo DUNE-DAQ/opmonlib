@@ -71,17 +71,6 @@ class OpMonPublisherBase(ABC):
         self.check_publisher()
         return self.default_topic
 
-    def extract_key(self, opmon_entry: OpMonEntry) -> str:
-        """Extract  the key from the OpMonEntry."""
-        self.check_publisher()
-        key = str(opmon_entry.origin.session)
-        if opmon_entry.origin.application != "":
-            key += "." + opmon_entry.origin.application
-        for substructure_id in opmon_entry.origin.substructure:
-            key += "." + substructure_id
-        key += "/" + str(opmon_entry.measurement)
-        return key
-
     def make_origin(
         self, session: str, app: str, substructure: dict[str, str] | None
     ) -> OpMonId:
