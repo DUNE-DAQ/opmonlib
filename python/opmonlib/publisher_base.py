@@ -49,7 +49,6 @@ class OpMonPublisherBase(ABC):
         self,
         message: Msg,
         custom_origin: dict[str, str] | None = None,
-        substructure: list[str] | None = None,
         level: int | str | None = None,
     ) -> None:
         """Publish an OpMonEntry to the relevant location."""
