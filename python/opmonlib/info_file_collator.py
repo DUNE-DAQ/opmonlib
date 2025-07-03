@@ -23,8 +23,9 @@ def collate_info_files(
         while idx < len(text):
             res = jd.raw_decode(text, idx)
             jsons.append(res[0])
-            idx = res[1] + 2
-
+            idx = res[1]
+            while idx < len(text) and text[idx] != '{':
+                idx += 1
     data = {}
 
     for jsonobj in jsons:
