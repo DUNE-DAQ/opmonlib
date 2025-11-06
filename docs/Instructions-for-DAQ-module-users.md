@@ -156,12 +156,6 @@ Of course a more static approach is possible too.
 
 The registration does not imply ownership, so in order to unregister an object you just need to delete the shared pointer. 
 
-## Testing
-
-The configuration of `opmonlib` is currently managed through the environment variables: `DUNEDAQ_OPMON_INTERVAL` and `DUNEDAQ_OPMON_LEVEL`. These can be seen further in `Application.cpp`:
-```
-  setenv("DUNEDAQ_OPMON_INTERVAL",    "10",0);
-  setenv("DUNEDAQ_OPMON_LEVEL",  "1",0);
-```
-here, `DUNEDAQ_OPMON_INTERVAL` sets the interval in seconds between each instance of calling `generate_opmon_data` (currently defaulting to 10 seconds), and `DUNEDAQ_OPMON_LEVEL` allows the user to define the level for `generatre_opmon_data` (currently set to 1). 
+## Configuration
+Each `confmodel::Application` has a relationship with an OpMonConf object that specifies the level and the period of the monitoring. 
 
