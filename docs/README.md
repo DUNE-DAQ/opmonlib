@@ -15,6 +15,5 @@ outputs one block for every schema in a json format.
 
 [Instructions for DAQ module users](Instructions-for-DAQ-module-users.md)
 
-%% ### Building and running examples (_under construction_)
 
 
