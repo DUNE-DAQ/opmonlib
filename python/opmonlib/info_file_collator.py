@@ -4,21 +4,24 @@ import json
 import click
 from rich.console import Console
 
-
 def collate_info_files(
-    output_file: click.File, json_files: list, console: Console
-) -> None:
+    json_files: list, console: Console = None, output_file: click.File = None
+) -> dict:
     """Collate the json information into an output file."""
-    console.log(
-        "Reading specified JSON files and outputting collated value traces to %s",
-        output_file.name,
-    )
+    if console is not None and output_file is not None:
+        console.log(
+            f"Reading specified JSON files and outputting collated value traces to {output_file.name}"
+        )
 
     jsons = []
     jd = json.JSONDecoder()
     for jf in json_files:
-        console.log(f"Reading info JSON file {jf.name}")
-        text = jf.read()
+        if console is not None:
+            console.log(f"Reading info JSON file {jf.name}")
+        if "pathlib.PosixPath" in str(type(jf)):
+            text = jf.read_text()
+        else:
+            text = jf.read()
         idx = 0
         while idx < len(text):
             res = jd.raw_decode(text, idx)
@@ -73,6 +76,8 @@ def collate_info_files(
             for value in jsonobj["data"][datapoint]:
                 objref[datapoint][jsonobj["time"]] = jsonobj["data"][datapoint][value]
 
-    json.dump(data, output_file, indent=4, sort_keys=True)
-    console.log("Operation complete")
-    return
+    if output_file is not None:
+        json.dump(data, output_file, indent=4, sort_keys=True)
+    if console is not None:
+        console.log("Operation complete")
+    return data

@@ -18,7 +18,7 @@ import click
 @click.argument('json_files', type=click.File('r'), nargs=-1)
 
 def cli(output_file, json_files):
-    collate_info_files(output_file, json_files, console)
+    collate_info_files(json_files, console, output_file)
 
 if __name__ == '__main__':
     try:
