@@ -4,21 +4,34 @@ import json
 import click
 from rich.console import Console
 
-
+# 26-Nov-2025, KAB: modified this function so that it can return the collated opmon data
+# without necessarily writing the data to a file on disk. This involved changing the
+# order of the function arguments so that we can provide defaults of None for the
+# console and output_file, and it included changes to the body of the function to skip
+# console printouts and file output, if needed.
 def collate_info_files(
-    output_file: click.File, json_files: list, console: Console
-) -> None:
+    json_files: list, console: Console = None, output_file: click.File = None
+) -> dict:
     """Collate the json information into an output file."""
-    console.log(
-        "Reading specified JSON files and outputting collated value traces to %s",
-        output_file.name,
-    )
+    if console is not None and output_file is not None:
+        console.log(
+            f"Reading specified JSON files and outputting collated value traces to {output_file.name}"
+        )
 
     jsons = []
     jd = json.JSONDecoder()
     for jf in json_files:
-        console.log(f"Reading info JSON file {jf.name}")
-        text = jf.read()
+        if console is not None:
+            console.log(f"Reading info JSON file {jf.name}")
+        # 26-Nov-2025, KAB: it seems that the data type of the input "json_files" is different
+        # when this function is called from the info_file_collator script in this repo compared
+        # with when it is called with the list of opmon files generated in an integtest (from
+        # integrationtest/opmon_metric_checks.py). The following "if/else" block takes this
+        # difference into account.
+        if "pathlib.PosixPath" in str(type(jf)):
+            text = jf.read_text()
+        else:
+            text = jf.read()
         idx = 0
         while idx < len(text):
             res = jd.raw_decode(text, idx)
@@ -73,6 +86,8 @@ def collate_info_files(
             for value in jsonobj["data"][datapoint]:
                 objref[datapoint][jsonobj["time"]] = jsonobj["data"][datapoint][value]
 
-    json.dump(data, output_file, indent=4, sort_keys=True)
-    console.log("Operation complete")
-    return
+    if output_file is not None:
+        json.dump(data, output_file, indent=4, sort_keys=True)
+    if console is not None:
+        console.log("Operation complete")
+    return data

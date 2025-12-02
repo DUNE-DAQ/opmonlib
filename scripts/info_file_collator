@@ -18,7 +18,10 @@ import click
 @click.argument('json_files', type=click.File('r'), nargs=-1)
 
 def cli(output_file, json_files):
-    collate_info_files(output_file, json_files, console)
+    # 26-Nov-2025, KAB: changed the order of the arguments that are passed to the
+    # collate_info_files function based on the changes that have been made to it to
+    # support None values for the console and output_file.
+    collate_info_files(json_files, console, output_file)
 
 if __name__ == '__main__':
     try:
