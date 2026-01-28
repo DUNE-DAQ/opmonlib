@@ -206,13 +206,6 @@ def parse_opmon_conf(
             path = ""
         log.debug("No OpMon path required for type 'stdout'.")
 
-    if opmon_type == "stream" and "monkafka" not in path:
-        msg = "OpMon 'stream' configuration must publish to kafka, exiting."
-        raise ValueError(msg) from None
-    if opmon_type != "stream" and "monkafka" in path:
-        msg = "To use kafka, the type must be set to stream."
-        raise ValueError(msg) from None
-
     bootstrap = None
     topic = None
     if opmon_type == "file" and not Path(path).parent.is_dir():
