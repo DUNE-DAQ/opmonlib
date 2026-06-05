@@ -38,7 +38,14 @@ void OpMonManager::start_monitoring() {
     ers::warning(ThreadNameTooLong(ERS_HERE, thread_name));
   }
 }
-  
+
+
+void OpMonManager::stop_monitoring() {
+
+  m_thread.request_stop();
+  m_thread.join();
+}
+
 void OpMonManager::run(std::stop_token stoken ) {
 
   auto sleep_interval = std::chrono::milliseconds(100);
