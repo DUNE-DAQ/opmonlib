@@ -49,13 +49,16 @@ void OpMonManager::run(std::stop_token stoken ) {
     
     std::this_thread::sleep_for(sleep_interval);
     auto time_span = std::chrono::duration_cast<std::chrono::milliseconds>( std::chrono::steady_clock::now() - last_collection_time);
+
+    if ( time_span < reporting_interval ) continue;
+
+    if ( stoken.stop_requested() ) break;
+      
+    last_collection_time = std::chrono::steady_clock::now();
+    publish( collect() );
+    // there is no catch here because collect is supposed to catch all possible exceptions
+    // In this way we should garantee the collection of metrics on the system
     
-    if ( time_span >= reporting_interval ) {
-      last_collection_time = std::chrono::steady_clock::now();
-      publish( collect() );
-      // there is no catch here because collect is supposed to catch all possible exceptions
-      // In this way we should garantee the collection of metrics on the system
-    }
   }
 
   TLOG() << "Exiting the monitoring thread";
