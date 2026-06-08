@@ -1,0 +1,6 @@
+
+# integtest temporary files
+__pycache__
+
+# clang formatting temporary files
+.clang-format
