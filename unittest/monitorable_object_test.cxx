@@ -135,14 +135,40 @@ BOOST_FIXTURE_TEST_CASE( start_stop, my_fixture ) {
   auto conf = db->get<dunedaq::confmodel::OpMonConf>("test_conf");
 
   manager.set_opmon_conf(conf);
-  
-  manager.start_monitoring();
-  
-  std::this_thread::sleep_for(std::chrono::seconds(3));
-  
+
+  for ( int i = 0; i < 4; ++i ) {
+    manager.start_monitoring();
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    BOOST_CHECK_NO_THROW( manager.stop_monitoring() );
+  }
+
+  // finally let's check we can start multuiple monitoring threads and only one works
+  for ( int i = 0; i < 4; ++i ) {
+    manager.start_monitoring();
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+  }
   BOOST_CHECK_NO_THROW( manager.stop_monitoring() );
+
 }
 
+BOOST_FIXTURE_TEST_CASE( multiple_start, my_fixture ) {
+
+  auto db = std::make_shared<dunedaq::conffwk::Configuration>("oksconflibs:test/config/opmon.data.xml");
+
+  auto conf = db->get<dunedaq::confmodel::OpMonConf>("test_conf");
+
+  manager.set_opmon_conf(conf);
+
+  // what we are testing here is that the creation of a separate monitoring thread
+  // is actually forcing the previous one to top due to the jthread correct desctructor
+  
+  for ( int i = 0; i < 4; ++i ) {
+    manager.start_monitoring();
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+  }
+  BOOST_CHECK_NO_THROW( manager.stop_monitoring() );
+
+}
 
 
 BOOST_AUTO_TEST_SUITE_END()

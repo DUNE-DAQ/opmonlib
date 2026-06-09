@@ -42,12 +42,16 @@ void OpMonManager::start_monitoring() {
 
 void OpMonManager::stop_monitoring() {
 
+  TLOG() << "Gracefully requesting the monitoring thread to stop";
+  
   m_thread.request_stop();
   m_thread.join();
 }
 
 void OpMonManager::run(std::stop_token stoken ) {
 
+  TLOG() << "Monitoring thread started";
+  
   auto sleep_interval = std::chrono::milliseconds(100);
   auto reporting_interval = m_cfg.load()->get_interval();  
   auto last_collection_time = std::chrono::steady_clock::now();
