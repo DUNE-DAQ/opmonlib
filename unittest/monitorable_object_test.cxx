@@ -6,6 +6,8 @@
  * received with this code.
  */
 
+#include "confmodel/OpMonConf.hpp"
+
 #include "opmonlib/opmon/test.pb.h"
 #include "opmonlib/MonitorableObject.hpp"
 #include "opmonlib/TestOpMonManager.hpp"
@@ -123,7 +125,23 @@ BOOST_FIXTURE_TEST_CASE( counters, my_fixture ) {
 }
 
 
+BOOST_FIXTURE_TEST_CASE( start_stop, my_fixture ) {
 
+  // there is no configuration, so the monitoring thread cannot start
+  BOOST_CHECK_THROW ( manager.start_monitoring(), dunedaq::opmonlib::MissingConfiguration );
+
+  auto confdb = std::make_shared<dunedaq::conffwk::Configuration>("oksconflibs:test/config/opmon.data.xml");
+
+  
+  dunedaq::confmodel::OpMonConf conf;
+  conf.set_interval_s(1);
+
+  manager.start_monitoring();
+  
+  std::this_thread::sleep_for(std::chrono::seconds(3));
+  
+  BOOST_CHECK_NO_THROW( manager.stop_monitoring() );
+}
 
 
 
