@@ -76,7 +76,7 @@
 </comments>
 
 <obj class="OpMonConf" id="test_conf">
-  <attr name="interval_s" type="u32" val=3 />
+  <attr name="interval_s" type="u32" val="3" />
 </obj>
 
 </oks-data>

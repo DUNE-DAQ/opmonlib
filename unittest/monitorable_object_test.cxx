@@ -130,12 +130,12 @@ BOOST_FIXTURE_TEST_CASE( start_stop, my_fixture ) {
   // there is no configuration, so the monitoring thread cannot start
   BOOST_CHECK_THROW ( manager.start_monitoring(), dunedaq::opmonlib::MissingConfiguration );
 
-  auto confdb = std::make_shared<dunedaq::conffwk::Configuration>("oksconflibs:test/config/opmon.data.xml");
+  auto db = std::make_shared<dunedaq::conffwk::Configuration>("oksconflibs:test/config/opmon.data.xml");
 
+  auto conf = db->get<dunedaq::confmodel::OpMonConf>("test_conf");
+
+  manager.set_opmon_conf(conf);
   
-  dunedaq::confmodel::OpMonConf conf;
-  conf.set_interval_s(1);
-
   manager.start_monitoring();
   
   std::this_thread::sleep_for(std::chrono::seconds(3));
