@@ -130,13 +130,17 @@ class OpMonPublisherBase(ABC):
         return formatted_opmonvalue
 
     def to_entry(
-        self, message: Msg, custom_origin: dict[str, str] | None
+        self, message: Msg, custom_origin: dict[str, str] | None, 
+        session_override:str|None = None
+
     ) -> OpMonEntry:
+        # changes here as well? this needs to go into the make origin thing
+        # where we have the session be placed in here
         """Pack all the data that needs to be published to an OpMonEntry."""
         self.ts.GetCurrentTime()
         return OpMonEntry(
             time=self.ts,
-            origin=self.make_origin(self.conf.session, self.conf.application),
+            origin=self.make_origin(self.conf.session if session_override is None else session_override, self.conf.application),
             custom_origin=self.validate_custom_origin(custom_origin),
             measurement=message.DESCRIPTOR.full_name,
             data=self.make_data(message),
