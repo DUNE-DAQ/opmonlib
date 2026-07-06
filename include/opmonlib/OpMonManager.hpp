@@ -71,10 +71,13 @@ public:
   
   // data collecting loop
   void start_monitoring(); 
-  // The stop command is not necessary.
+  // The stop command is not necessary, although it is provided to facilitate complex object behaviour
   // The stop is invoked during the destruction of the thread
   // the method requires a valid configuration because the time period is taken from there
 
+  void stop_monitoring();
+  // on top of stopping the monitorin thread, this method will also join the thread
+  
   void set_opmon_conf( const confmodel::OpMonConf* c ) {
     m_cfg.store(c);
     set_opmon_level( m_cfg.load()->get_level() );
