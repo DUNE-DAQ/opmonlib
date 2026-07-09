@@ -1,12 +1,31 @@
+# 08-July-2026, KAB: the goal of this test is to check whether the monitoring functionality
+# in opmonlib gracefully shuts down as the DAQ processes are shutting down. An indication of
+# an un-graceful shutdown is the presence of garbled strings in the metrics that are written
+# to disk.
+#
+# Garbled strings were observed before the long delay in the ZmqSender destructor was removed
+# and before the stop_monitoring() call was added to the appfwk::Application::run() method.
+# If we want to force this integtest to fail (e.g. as a sanity check), we can comment out the
+# stop_monitoring() call in Application::run().
+#
+# This integtest configures an artificial long delay in the ZmqSender destructor and checks
+# for any garbled strings in the metrics on disk. It also specifies an ignored logfile string
+# for the expected warning message from the inclusion of the artificial delay so that we
+# don't see failures from a warning message that we know will be present in the logs.
+#
+# This integtest was created by copying the small_footprint_quick_test from the daqsystemtest
+# repo and adding the extra configuration for the artificial delay, the extra checking of
+# metric strings, etc.
+#
 import pytest
 import urllib.request
 
 import integrationtest.data_file_checks as data_file_checks
 import integrationtest.log_file_checks as log_file_checks
-import integrationtest.basic_checks as basic_checks
 import integrationtest.data_classes as data_classes
 import integrationtest.resource_validation as resource_validation
 import integrationtest.opmon_metric_checks as opmon_metric_checks
+import integrationtest.utility_functions as utility_functions
 from integrationtest.get_pytest_tmpdir import get_pytest_tmpdir
 from integrationtest.verbosity_helper import IntegtestVerbosityLevels
 
@@ -90,11 +109,60 @@ conf_dict.config_substitutions.append(
 )
 conf_dict.config_substitutions.append(
     data_classes.attribute_substitution(
-        obj_class="Variable",
-        obj_id = "local-env-artificial-delay-settings",
-        updates={"value": "{\\\"~ZmqSender\\\": 10000000}"},
+        obj_class="DelaySpec",
+        obj_id = "delay-spec-01",
+        updates={
+            "delay_name": "~ZmqSender",
+            "delay_usec": "10000000",
+        },
     )
 )
+conf_dict.config_substitutions.append(
+    data_classes.list_element_addition(
+        obj_class="DelayManagerConf",
+        obj_id="delay-mgr",
+        rel_name="delays",
+        additional_object_class="DelaySpec",
+        additional_object_id="delay-spec-01",
+    )
+)
+conf_dict.config_substitutions.append(
+    data_classes.relationship_substitution(
+        obj_class="DFApplication",
+        obj_id="df-01",
+        rel_name="delay_manager_conf",
+        replacement_object_class="DelayManagerConf",
+        replacement_object_id="delay-mgr"
+    )
+)
+conf_dict.config_substitutions.append(
+    data_classes.relationship_substitution(
+        obj_class="DFOApplication",
+        obj_id="dfo-01",
+        rel_name="delay_manager_conf",
+        replacement_object_class="DelayManagerConf",
+        replacement_object_id="delay-mgr"
+    )
+)
+conf_dict.config_substitutions.append(
+    data_classes.relationship_substitution(
+        obj_class="MLTApplication",
+        obj_id="mlt",
+        rel_name="delay_manager_conf",
+        replacement_object_class="DelayManagerConf",
+        replacement_object_id="delay-mgr"
+    )
+)
+conf_dict.config_substitutions.append(
+    data_classes.relationship_substitution(
+        obj_class="ReadoutApplication",
+        obj_id="ru-det-conn-0",
+        rel_name="delay_manager_conf",
+        replacement_object_class="DelayManagerConf",
+        replacement_object_id="delay-mgr"
+    )
+)
+
 confgen_arguments = {"GracefulTermination": conf_dict}
 
 # The commands to run in dunerc, as a list
@@ -109,7 +177,7 @@ dunerc_command_list = (
 
 def test_dunerc_success(run_dunerc, caplog):
     # checks for run control success, problems during pytest setup, etc.
-    basic_checks.basic_checks(run_dunerc, caplog, print_test_name=False)
+    utility_functions.basic_checks(run_dunerc, caplog, print_test_name=False)
 
 
 def test_log_files(run_dunerc):
