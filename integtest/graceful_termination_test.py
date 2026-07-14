@@ -64,6 +64,20 @@ hsi_frag_params = {
     "min_size_bytes": 100,
     "max_size_bytes": 100,
 }
+required_logfile_problems = {
+    "df-01": [
+        "An artificial delay of \\d+ usec is being introduced"
+    ],
+    "dfo-01": [
+        "An artificial delay of \\d+ usec is being introduced"
+    ],
+    "mlt": [
+        "An artificial delay of \\d+ usec is being introduced"
+    ],
+    "ru-det-conn-0": [
+        "An artificial delay of \\d+ usec is being introduced"
+    ]
+}
 ignored_logfile_problems = {
     "connectionservice": [
         "Searching for connections matching uid_regex<errored_frames_q> and data_type Unknown"
@@ -74,9 +88,6 @@ ignored_logfile_problems = {
     ],
     "connectivity-service": [
         "errorlog: -",
-    ],
-    r".*": [
-        "An artificial delay of \\d+ usec is being introduced"
     ]
 }
 
@@ -97,6 +108,7 @@ conf_dict.op_env = "integtest"
 conf_dict.config_session_name = "gracefultermination"
 conf_dict.tpg_enabled = False
 conf_dict.fake_hsi_enabled = True
+conf_dict.trace_debug_levels = {"fast path": {"DelayManager.hpp": 42}}
 
 conf_dict.config_substitutions.append(
     data_classes.attribute_substitution(obj_class="LatencyBuffer", updates={"size": 50000})
@@ -179,13 +191,28 @@ def test_dunerc_success(run_dunerc, caplog):
     # checks for run control success, problems during pytest setup, etc.
     utility_functions.basic_checks(run_dunerc, caplog, print_test_name=False)
 
+    # check that the test took long enough that we can be confident that the
+    # requested artificial delay(s) were actually run
+    expected_min_time_sec = 65
+    if run_dunerc.daq_session_overall_time < expected_min_time_sec:
+        fail_msg = (f"The run control session took less time than expected. The overall "
+                    f"run time was {round(run_dunerc.daq_session_overall_time,1)} sec, and "
+                    f"the typical run time is greater than {expected_min_time_sec} sec. "
+                    f"Check that the expected artificial delays in this test were actually run.")
+        pytest.fail(fail_msg, pytrace=False)
+    else:
+        success_msg = (f"\N{WHITE HEAVY CHECK MARK} The run control session took the expected "
+                       f"amount of time ({round(run_dunerc.daq_session_overall_time,1)}>="
+                       f"{expected_min_time_sec} sec)")
+        run_dunerc.verbosity_helper.lvl_print(IntegtestVerbosityLevels.drunc_transitions, success_msg)
+
 
 def test_log_files(run_dunerc):
     if check_for_logfile_errors:
         # Check that there are no warnings or errors in the log files
         assert log_file_checks.logs_are_error_free(
             run_dunerc.log_files, True, True, ignored_logfile_problems,
-            verbosity_helper=run_dunerc.verbosity_helper
+            required_logfile_problems, verbosity_helper=run_dunerc.verbosity_helper
         )
 
 
