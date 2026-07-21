@@ -66,16 +66,16 @@ hsi_frag_params = {
 }
 required_logfile_problems = {
     "df-01": [
-        "An artificial delay of \\d+ usec is being introduced"
+        "An artificial delay of \\d+ usec is being executed"
     ],
     "dfo-01": [
-        "An artificial delay of \\d+ usec is being introduced"
+        "An artificial delay of \\d+ usec is being executed"
     ],
     "mlt": [
-        "An artificial delay of \\d+ usec is being introduced"
+        "An artificial delay of \\d+ usec is being executed"
     ],
     "ru-det-conn-0": [
-        "An artificial delay of \\d+ usec is being introduced"
+        "An artificial delay of \\d+ usec is being executed"
     ]
 }
 ignored_logfile_problems = {
