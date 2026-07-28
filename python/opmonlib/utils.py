@@ -174,7 +174,7 @@ def parse_opmon_conf(
     uri: dict[str:str] | conffwk.dal.OpMonURI,  # noqa: UP037.
     session: str,
     application: str,
-) -> dict[str:str]:
+) -> OpMonConf:
     """Parse the OpMonConf and OpMonURI."""
     if not conf:
         log.error("Missing opmon configuration, exiting.")
