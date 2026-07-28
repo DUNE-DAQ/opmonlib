@@ -47,5 +47,6 @@ daq_add_unit_test( monitorable_object_test  LINK_LIBRARIES opmonlib )
 
 ##############################################################################
 
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/python/ DESTINATION ${CMAKE_INSTALL_PYTHONDIR} OPTIONAL FILES_MATCHING PATTERN "py.typed" PATTERN "*.pyi")
 daq_install()
 
