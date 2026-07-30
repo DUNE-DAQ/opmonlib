@@ -1,4 +1,4 @@
-# 08-July-2026, KAB: the goal of this test is to check whether the monitoring functionality
+# 30-July-2026, KAB: the goal of this test is to check whether the monitoring functionality
 # in opmonlib gracefully shuts down as the DAQ processes are shutting down. An indication of
 # an un-graceful shutdown is the presence of garbled strings in the metrics that are written
 # to disk.
@@ -9,9 +9,10 @@
 # stop_monitoring() call in Application::run().
 #
 # This integtest configures an artificial long delay in the ZmqSender destructor and checks
-# for any garbled strings in the metrics on disk. It also specifies an ignored logfile string
-# for the expected warning message from the inclusion of the artificial delay so that we
-# don't see failures from a warning message that we know will be present in the logs.
+# for any garbled strings in the metrics on disk. In order to confirm that the artificial
+# delay was executed, it does (at least) two things:
+# * it checks that the warning message from the artificial delay execution is present in log files
+# * it confirms that the test took a somewhat long time to run (longer than without the delays)
 #
 # This integtest was created by copying the small_footprint_quick_test from the daqsystemtest
 # repo and adding the extra configuration for the artificial delay, the extra checking of
@@ -107,18 +108,16 @@ conf_dict.dro_map_config.n_streams = number_of_data_producers
 conf_dict.op_env = "integtest"
 conf_dict.config_session_name = "gracefultermination"
 conf_dict.tpg_enabled = False
-conf_dict.fake_hsi_enabled = True
+utility_functions.enable_fake_hsi_trigger(conf_dict, trigger_rate=1.0)
+
+# globally enable artificial delays using the special TRACE level of 42
 conf_dict.trace_debug_levels = {"fast path": {"DelayManager.hpp": 42}}
 
 conf_dict.config_substitutions.append(
     data_classes.attribute_substitution(obj_class="LatencyBuffer", updates={"size": 50000})
 )
-conf_dict.config_substitutions.append(
-    data_classes.attribute_substitution(
-        obj_class="FakeHSIEventGeneratorConf",
-        updates={"trigger_rate": 1.0},
-    )
-)
+
+# apply the necessary configuration modifications to enable the artificial delays that we want
 conf_dict.config_substitutions.append(
     data_classes.attribute_substitution(
         obj_class="DelaySpec",
