@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
-project(opmonlib VERSION 2.1.6)
+project(opmonlib VERSION 2.1.7)
 
 find_package(daq-cmake REQUIRED)
 
