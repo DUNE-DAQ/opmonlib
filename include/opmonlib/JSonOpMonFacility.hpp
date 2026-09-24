@@ -12,28 +12,26 @@
 #include "opmonlib/OpMonFacility.hpp"
 #include <google/protobuf/util/json_util.h>
 
-
 namespace dunedaq::opmonlib {
 
 class JSonOpMonFacility : public OpMonFacility
 {
 public:
   explicit JSonOpMonFacility(std::string uri)
-    : OpMonFacility(uri) {
+    : OpMonFacility(uri)
+  {
 
     m_opt.add_whitespace = true;
     m_opt.preserve_proto_field_names = true;
   }
-  
+
 protected:
-  const auto & get_json_options() const { return m_opt; }
-  
+  const auto& get_json_options() const { return m_opt; }
+
 private:
   google::protobuf::util::JsonPrintOptions m_opt;
-  
 };
 
 } // namespace dunedaq::opmonlib
 
-#endif //OPMONLIB_INCLUDE_OPMONLIB_JSONOPMONFACILITY_HPP_
-
+#endif // OPMONLIB_INCLUDE_OPMONLIB_JSONOPMONFACILITY_HPP_

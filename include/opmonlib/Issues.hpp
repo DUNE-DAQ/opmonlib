@@ -9,32 +9,25 @@
 #ifndef OPMONLIB_INCLUDE_OPMONLIB_ISSUES_HPP_
 #define OPMONLIB_INCLUDE_OPMONLIB_ISSUES_HPP_
 
-#include <ers/Issue.hpp>
 #include "logging/Logging.hpp" // NOTE: if ISSUES ARE DECLARED BEFORE include logging/Logging.hpp, TLOG_DEBUG<<issue wont work.
+#include <ers/Issue.hpp>
 #include <string>
 
 namespace dunedaq {
 
-ERS_DECLARE_ISSUE(opmonlib,
-		  OpmonServiceCreationFailed,
-		  "OpmonServiceCreationFailed: " << error,
-		  ((std::string)error)
-		  ) ;
+ERS_DECLARE_ISSUE(opmonlib, OpmonServiceCreationFailed, "OpmonServiceCreationFailed: " << error, ((std::string)error));
 
 ERS_DECLARE_ISSUE(opmonlib,
-		  OpMonFacilityCreationFailed,
-		  "Facility " << type << ": creation failed",
-		  ((std::string)type)
-		  ) ;
+                  OpMonFacilityCreationFailed,
+                  "Facility " << type << ": creation failed",
+                  ((std::string)type));
 
 ERS_DECLARE_ISSUE_BASE(opmonlib,
-		       OpMonFacilityCreationFailedWithCause,
-		       opmonlib::OpMonFacilityCreationFailed,
-		       "Facility " << type << ": creation failed because " << cause_message,
-		       ((std::string)type),
-		       ((std::string)cause_message)
-		       )
-
+                       OpMonFacilityCreationFailedWithCause,
+                       opmonlib::OpMonFacilityCreationFailed,
+                       "Facility " << type << ": creation failed because " << cause_message,
+                       ((std::string)type),
+                       ((std::string)cause_message))
 
 } // namespace dunedaq
 

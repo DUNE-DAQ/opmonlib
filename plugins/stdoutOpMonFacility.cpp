@@ -20,15 +20,18 @@ namespace dunedaq::opmonlib {
 class stdoutOpMonFacility : public JSonOpMonFacility
 {
 public:
-  explicit stdoutOpMonFacility(std::string uri, OptionalOrigin )
-    : JSonOpMonFacility(uri) { ; }
-  
-  void publish(opmon::OpMonEntry && e) const override {
-    std::string json;
-    google::protobuf::util::MessageToJsonString( e, & json, get_json_options() );
-    TLOG() << "OpMon metric: " << json ;
+  explicit stdoutOpMonFacility(std::string uri, OptionalOrigin)
+    : JSonOpMonFacility(uri)
+  {
+    ;
   }
 
+  void publish(opmon::OpMonEntry&& e) const override
+  {
+    std::string json;
+    google::protobuf::util::MessageToJsonString(e, &json, get_json_options());
+    TLOG() << "OpMon metric: " << json;
+  }
 };
 
 } // namespace dunedaq::opmonlib

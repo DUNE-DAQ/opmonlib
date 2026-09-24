@@ -11,15 +11,15 @@
 
 #include "Issues.hpp"
 
+#include "logging/Logging.hpp" // NOTE: if ISSUES ARE DECLARED BEFORE include logging/Logging.hpp, TLOG_DEBUG<<issue wont work.
+#include "opmonlib/opmon_entry.pb.h"
 #include <cetlib/BasicPluginFactory.h>
 #include <cetlib/compiler_macros.h>
-#include "opmonlib/opmon_entry.pb.h"
-#include "logging/Logging.hpp" // NOTE: if ISSUES ARE DECLARED BEFORE include logging/Logging.hpp, TLOG_DEBUG<<issue wont work.
 
 #include <iostream>
 #include <memory>
-#include <string>
 #include <optional>
+#include <string>
 
 #ifndef EXTERN_C_FUNC_DECLARE_START
 // NOLINTNEXTLINE(build/define_used)
@@ -34,40 +34,42 @@
  */
 
 // NOLINTNEXTLINE(build/define_used)
-#define DEFINE_DUNE_OPMON_FACILITY(klass)                                                                                       \
-  EXTERN_C_FUNC_DECLARE_START                                                                                                   \
-  std::shared_ptr<dunedaq::opmonlib::OpMonFacility> make(std::string facility, std::optional<dunedaq::opmon::OpMonId> o )	\
-  {                                                                                                                             \
-    return std::shared_ptr<dunedaq::opmonlib::OpMonFacility>(new klass(facility, o));                                           \
-  }                                                                                                                             \
+#define DEFINE_DUNE_OPMON_FACILITY(klass)                                                                              \
+  EXTERN_C_FUNC_DECLARE_START                                                                                          \
+  std::shared_ptr<dunedaq::opmonlib::OpMonFacility> make(std::string facility,                                         \
+                                                         std::optional<dunedaq::opmon::OpMonId> o)                     \
+  {                                                                                                                    \
+    return std::shared_ptr<dunedaq::opmonlib::OpMonFacility>(new klass(facility, o));                                  \
+  }                                                                                                                    \
   }
 
 namespace dunedaq {
 
-  ERS_DECLARE_ISSUE(opmonlib,
-		    OpMonPublishFailure,
-		    uri << " Failed to publish " << measurment << " from " << opmon_id,
-		    ((std::string)uri)((std::string)measurment)((std::string)opmon_id)
-		    )
+ERS_DECLARE_ISSUE(opmonlib,
+                  OpMonPublishFailure,
+                  uri << " Failed to publish " << measurment << " from " << opmon_id,
+                  ((std::string)uri)((std::string)measurment)((std::string)opmon_id))
 
 }
-  
-
 
 namespace dunedaq::opmonlib {
 
 class OpMonFacility
 {
 public:
-  explicit OpMonFacility(std::string uri ) : m_uri(uri) {;}
-  
+  explicit OpMonFacility(std::string uri)
+    : m_uri(uri)
+  {
+    ;
+  }
+
   virtual ~OpMonFacility() = default;
   OpMonFacility(const OpMonFacility&) = delete;            ///< OpMonFacility is not copy-constructible
   OpMonFacility& operator=(const OpMonFacility&) = delete; ///< OpMonFacility is not copy-assignable
   OpMonFacility(OpMonFacility&&) = delete;                 ///< OpMonFacility is not move-constructible
   OpMonFacility& operator=(OpMonFacility&&) = delete;      ///< OpMonFacility is not move-assignable
 
-  const auto & get_URI() const { return m_uri; }
+  const auto& get_URI() const { return m_uri; }
 
   // Publish information
   /**
@@ -75,14 +77,15 @@ public:
    * It is a requirement to implement this function asyncronously.
    * This function can throw, but it is guaranteed to throw an OpMonPublishFailure
    */
-  virtual void publish(opmon::OpMonEntry &&) const = 0;
+  virtual void publish(opmon::OpMonEntry&&) const = 0;
 
 private:
   std::string m_uri;
 };
 
-  using OptionalOrigin = std::optional<dunedaq::opmon::OpMonId>;
-  std::shared_ptr<OpMonFacility> makeOpMonFacility(std::string const& facility, OptionalOrigin = OptionalOrigin() ) ;
+using OptionalOrigin = std::optional<dunedaq::opmon::OpMonId>;
+std::shared_ptr<OpMonFacility>
+makeOpMonFacility(std::string const& facility, OptionalOrigin = OptionalOrigin());
 
 } // namespace dunedaq::opmonlib
 
